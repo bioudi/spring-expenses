@@ -32,7 +32,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/expense_tracker
       SPRING_DATASOURCE_USERNAME: expenseuser
       SPRING_DATASOURCE_PASSWORD: expensepass
-      API_KEY: your-secure-api-key-here
+      API_KEY: exp_tk_9a7f2c8e4b3d1a6f5e9c8b7a4d3f2e1c0b9a8f7e6d5c4b3a2f1e0d9c8b7a6f5e4d3c2b1a
     depends_on:
       postgres:
         condition: service_healthy
