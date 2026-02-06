@@ -1,5 +1,8 @@
 package com.expensetracker.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.expensetracker.config.FlexibleBigDecimalDeserializer;
 import jakarta.validation.constraints.*;
 import lombok.*;
 
@@ -15,16 +18,18 @@ public class ExpenseRequest {
 
     @NotNull(message = "Amount is required")
     @Positive(message = "Amount must be positive")
+    @JsonDeserialize(using = FlexibleBigDecimalDeserializer.class)
     private BigDecimal amount;
 
-    @NotBlank(message = "Category is required")
     private String category;
 
-    @NotBlank(message = "Merchant is required")
     private String merchant;
 
-    @NotBlank(message = "Card name is required")
     private String cardName;
+
+    private String card;
+
+    private String name;
 
     private LocalDateTime timestamp;
 
