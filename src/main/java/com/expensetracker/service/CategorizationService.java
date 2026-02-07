@@ -6,12 +6,16 @@ import com.anthropic.models.messages.Message;
 import com.anthropic.models.messages.MessageCreateParams;
 import com.anthropic.models.messages.Model;
 import com.expensetracker.config.ExpenseCategory;
+import com.expensetracker.entity.MerchantCategory;
+import com.expensetracker.repository.MerchantCategoryRepository;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
@@ -24,6 +28,12 @@ public class CategorizationService {
     private AnthropicClient client;
 
     private final Map<String, String> categoryCache = new ConcurrentHashMap<>();
+
+    private final MerchantCategoryRepository merchantCategoryRepository;
+
+    public CategorizationService(MerchantCategoryRepository merchantCategoryRepository) {
+        this.merchantCategoryRepository = merchantCategoryRepository;
+    }
 
     private static final String SYSTEM_PROMPT =
             "You are an expense categorizer for someone living in Quebec City, Canada. " +
@@ -51,6 +61,13 @@ public class CategorizationService {
         } else {
             log.warn("ANTHROPIC_API_KEY not set — AI categorization disabled, expenses without a category will be 'Uncategorized'");
         }
+
+        // Load persistent cache from database
+        List<MerchantCategory> mappings = merchantCategoryRepository.findAll();
+        for (MerchantCategory mc : mappings) {
+            categoryCache.put(mc.getMerchantKey(), mc.getCategory());
+        }
+        log.info("Loaded {} merchant→category mappings from database into cache", mappings.size());
     }
 
     public String categorize(String merchant) {
@@ -86,7 +103,15 @@ public class CategorizationService {
 
             if (ExpenseCategory.isValid(category)) {
                 categoryCache.put(normalizedMerchant, category);
-                log.info("AI categorized merchant '{}' as '{}' (cached for future use, cache size: {})", merchant, category, categoryCache.size());
+
+                // Persist to database
+                MerchantCategory mc = MerchantCategory.builder()
+                        .merchantKey(normalizedMerchant)
+                        .category(category)
+                        .build();
+                merchantCategoryRepository.save(mc);
+
+                log.info("AI categorized merchant '{}' as '{}' (saved to DB, cache size: {})", merchant, category, categoryCache.size());
                 return category;
             } else {
                 log.warn("AI returned invalid category '{}' for merchant '{}', falling back to Uncategorized", category, merchant);
@@ -96,5 +121,29 @@ public class CategorizationService {
             log.error("AI categorization failed for merchant '{}': {} - {}", merchant, e.getClass().getSimpleName(), e.getMessage(), e);
             return null;
         }
+    }
+
+    // --- Methods for Merchant UI ---
+
+    public List<MerchantCategory> getAllMappings() {
+        return merchantCategoryRepository.findAll();
+    }
+
+    public MerchantCategory updateMapping(UUID id, String category) {
+        MerchantCategory mc = merchantCategoryRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Merchant mapping not found: " + id));
+        mc.setCategory(category);
+        merchantCategoryRepository.save(mc);
+        categoryCache.put(mc.getMerchantKey(), category);
+        log.info("Updated merchant mapping: '{}' → '{}'", mc.getMerchantKey(), category);
+        return mc;
+    }
+
+    public void deleteMapping(UUID id) {
+        MerchantCategory mc = merchantCategoryRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Merchant mapping not found: " + id));
+        merchantCategoryRepository.delete(mc);
+        categoryCache.remove(mc.getMerchantKey());
+        log.info("Deleted merchant mapping: '{}' (was '{}')", mc.getMerchantKey(), mc.getCategory());
     }
 }
