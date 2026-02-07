@@ -11,6 +11,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 @Slf4j
 @Service
 public class CategorizationService {
@@ -19,6 +22,8 @@ public class CategorizationService {
     private String apiKey;
 
     private AnthropicClient client;
+
+    private final Map<String, String> categoryCache = new ConcurrentHashMap<>();
 
     private static final String SYSTEM_PROMPT =
             "You are an expense categorizer for someone living in Quebec City, Canada. " +
@@ -51,7 +56,15 @@ public class CategorizationService {
             return null;
         }
 
-        log.info("Calling Claude API to categorize merchant: '{}'", merchant);
+        String normalizedMerchant = merchant.trim().toLowerCase();
+
+        String cached = categoryCache.get(normalizedMerchant);
+        if (cached != null) {
+            log.info("Cache hit — merchant '{}' already categorized as '{}'", merchant, cached);
+            return cached;
+        }
+
+        log.info("Cache miss — calling Claude API to categorize merchant: '{}'", merchant);
 
         try {
             MessageCreateParams params = MessageCreateParams.builder()
@@ -65,7 +78,8 @@ public class CategorizationService {
             String category = message.content().get(0).asText().text().trim();
 
             if (ExpenseCategory.isValid(category)) {
-                log.info("AI categorized merchant '{}' as '{}'", merchant, category);
+                categoryCache.put(normalizedMerchant, category);
+                log.info("AI categorized merchant '{}' as '{}' (cached for future use, cache size: {})", merchant, category, categoryCache.size());
                 return category;
             } else {
                 log.warn("AI returned invalid category '{}' for merchant '{}', falling back to Uncategorized", category, merchant);
