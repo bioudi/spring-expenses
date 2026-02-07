@@ -83,6 +83,12 @@
             color: #58a6ff;
         }
 
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
         .toggle-group {
             display: flex;
             background: #1c1f26;
@@ -110,6 +116,51 @@
         .toggle-btn:hover:not(.active) {
             background: #252830;
         }
+
+        .period-nav {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .period-nav-btn {
+            width: 36px;
+            height: 36px;
+            border: 1px solid #2d333b;
+            border-radius: 8px;
+            background: #1c1f26;
+            color: #8b949e;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .period-nav-btn:hover { background: #252830; color: #e1e4e8; }
+
+        .period-nav-label {
+            font-size: 15px;
+            font-weight: 600;
+            color: #e1e4e8;
+            min-width: 180px;
+            text-align: center;
+        }
+
+        .period-nav-today {
+            padding: 6px 12px;
+            border: 1px solid #2d333b;
+            border-radius: 6px;
+            background: transparent;
+            color: #8b949e;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .period-nav-today:hover { background: #252830; color: #e1e4e8; }
+        .period-nav-today.hidden { display: none; }
 
         .stats-grid {
             display: grid;
@@ -291,7 +342,9 @@
             body { padding: 16px; }
             .charts-grid { grid-template-columns: 1fr; }
             .header { flex-direction: column; gap: 16px; align-items: flex-start; }
+            .header-controls { flex-direction: column; gap: 12px; align-items: flex-start; }
             .stat-card .value { font-size: 24px; }
+            .period-nav-label { min-width: 140px; font-size: 13px; }
         }
     </style>
 </head>
@@ -312,9 +365,18 @@
     <div class="main-content">
     <div class="header">
         <h1>Dashboard</h1>
-        <div class="toggle-group">
-            <button class="toggle-btn" onclick="switchPeriod('week')">This Week</button>
-            <button class="toggle-btn active" onclick="switchPeriod('month')">This Month</button>
+        <div class="header-controls">
+            <div class="period-nav">
+                <button class="period-nav-btn" onclick="navigatePeriod(-1)">&larr;</button>
+                <span class="period-nav-label" id="periodNavLabel"></span>
+                <button class="period-nav-btn" onclick="navigatePeriod(1)">&rarr;</button>
+                <button class="period-nav-today hidden" id="todayBtn" onclick="goToToday()">Today</button>
+            </div>
+            <div class="toggle-group">
+                <button class="toggle-btn" data-period="week" onclick="switchPeriod('week')">Week</button>
+                <button class="toggle-btn active" data-period="month" onclick="switchPeriod('month')">Month</button>
+                <button class="toggle-btn" data-period="year" onclick="switchPeriod('year')">Year</button>
+            </div>
         </div>
     </div>
 
@@ -422,13 +484,27 @@
 
         let dashboardData = null;
         let currentPeriod = 'month';
+        let referenceDate = new Date();
         let categoryChart = null;
         let merchantChart = null;
         let dailyChart = null;
 
+        function toDateString(d) {
+            return d.getFullYear() + '-' +
+                String(d.getMonth() + 1).padStart(2, '0') + '-' +
+                String(d.getDate()).padStart(2, '0');
+        }
+
         async function fetchDashboard() {
             try {
-                const res = await fetch('/api/expenses/dashboard');
+                const dateParam = toDateString(referenceDate);
+                const res = await fetch(`/api/expenses/dashboard?date=${dateParam}`, {
+                    headers: { 'Accept': 'application/json' }
+                });
+                if (res.status === 401) {
+                    window.location.href = '/login.html';
+                    return;
+                }
                 dashboardData = await res.json();
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('dashboard').style.display = 'block';
@@ -442,8 +518,61 @@
         function switchPeriod(period) {
             currentPeriod = period;
             document.querySelectorAll('.toggle-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
+            document.querySelector(`.toggle-btn[data-period="${period}"]`).classList.add('active');
             render();
+        }
+
+        function navigatePeriod(direction) {
+            const d = new Date(referenceDate);
+            if (currentPeriod === 'week') {
+                d.setDate(d.getDate() + (direction * 7));
+            } else if (currentPeriod === 'month') {
+                d.setMonth(d.getMonth() + direction);
+            } else if (currentPeriod === 'year') {
+                d.setFullYear(d.getFullYear() + direction);
+            }
+            referenceDate = d;
+            fetchDashboard();
+        }
+
+        function goToToday() {
+            referenceDate = new Date();
+            fetchDashboard();
+        }
+
+        function isCurrentPeriod() {
+            const now = new Date();
+            if (currentPeriod === 'week') {
+                // Same week if within 6 days
+                const diff = Math.abs(now - referenceDate);
+                return diff < 7 * 24 * 60 * 60 * 1000 &&
+                    getMonday(now).getTime() === getMonday(referenceDate).getTime();
+            } else if (currentPeriod === 'month') {
+                return now.getMonth() === referenceDate.getMonth() &&
+                    now.getFullYear() === referenceDate.getFullYear();
+            } else {
+                return now.getFullYear() === referenceDate.getFullYear();
+            }
+        }
+
+        function getMonday(d) {
+            const date = new Date(d);
+            const day = date.getDay();
+            const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+            return new Date(date.setDate(diff));
+        }
+
+        function getPeriodNavLabel() {
+            const data = dashboardData[currentPeriod];
+            if (!data) return '';
+            if (currentPeriod === 'week') {
+                return `${formatDate(data.startDate)} - ${formatDate(data.endDate)}, ${new Date(data.startDate + 'T00:00:00').getFullYear()}`;
+            } else if (currentPeriod === 'month') {
+                const d = new Date(data.startDate + 'T00:00:00');
+                return d.toLocaleDateString('en-CA', { month: 'long', year: 'numeric' });
+            } else {
+                return new Date(data.startDate + 'T00:00:00').getFullYear().toString();
+            }
         }
 
         function formatMoney(val) {
@@ -459,9 +588,15 @@
             const data = dashboardData[currentPeriod];
             if (!data) return;
 
-            const periodText = currentPeriod === 'week'
-                ? `${formatDate(data.startDate)} - ${formatDate(data.endDate)}`
-                : `${formatDate(data.startDate)} - ${formatDate(data.endDate)}`;
+            // Update period nav label
+            const navLabel = getPeriodNavLabel();
+            document.getElementById('periodNavLabel').textContent = navLabel;
+
+            // Show/hide Today button
+            const todayBtn = document.getElementById('todayBtn');
+            todayBtn.classList.toggle('hidden', isCurrentPeriod());
+
+            const periodText = navLabel;
 
             // Stats cards
             document.getElementById('totalSpent').textContent = formatMoney(data.totalSpent);

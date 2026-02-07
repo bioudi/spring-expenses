@@ -16,6 +16,7 @@ public class DashboardResponse {
 
     private PeriodSummary week;
     private PeriodSummary month;
+    private PeriodSummary year;
 
     @Getter
     @Setter

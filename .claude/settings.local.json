@@ -5,7 +5,8 @@
       "Bash(ls:*)",
       "Bash(mvn compile:*)",
       "Bash(git stash:*)",
-      "Bash(mvn help:effective-pom:*)"
+      "Bash(mvn help:effective-pom:*)",
+      "Bash(curl:*)"
     ]
   }
 }

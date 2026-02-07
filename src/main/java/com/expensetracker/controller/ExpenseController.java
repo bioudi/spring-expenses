@@ -40,8 +40,9 @@ public class ExpenseController {
     }
 
     @GetMapping("/dashboard")
-    public ResponseEntity<DashboardResponse> getDashboard() {
-        DashboardResponse dashboard = expenseService.getDashboard();
+    public ResponseEntity<DashboardResponse> getDashboard(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        DashboardResponse dashboard = expenseService.getDashboard(date);
         return ResponseEntity.ok(dashboard);
     }
 

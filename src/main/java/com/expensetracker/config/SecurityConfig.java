@@ -1,5 +1,6 @@
 package com.expensetracker.config;
 
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -43,7 +44,22 @@ public class SecurityConfig {
                         .logoutSuccessUrl("/login.html?logout=true")
                         .permitAll()
                 )
-                .httpBasic(basic -> {})
+                .httpBasic(basic -> basic
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            // If the request comes from a browser (fetch/XHR), return 401 without
+                            // WWW-Authenticate header to avoid the native browser login popup
+                            if ("XMLHttpRequest".equals(request.getHeader("X-Requested-With"))
+                                    || (request.getHeader("Accept") != null && request.getHeader("Accept").contains("application/json"))) {
+                                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                                response.setContentType("application/json");
+                                response.getWriter().write("{\"error\":\"Unauthorized\"}");
+                            } else {
+                                // For non-browser clients (curl, Postman), send standard Basic challenge
+                                response.setHeader("WWW-Authenticate", "Basic realm=\"Expense Tracker\"");
+                                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                            }
+                        })
+                )
                 .csrf(csrf -> csrf
                         .ignoringRequestMatchers("/api/**", "/login", "/logout")
                 );

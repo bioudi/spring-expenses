@@ -157,25 +157,32 @@ public class ExpenseService {
     }
 
     @Transactional(readOnly = true)
-    public DashboardResponse getDashboard() {
-        LocalDate today = LocalDate.now();
+    public DashboardResponse getDashboard(LocalDate referenceDate) {
+        LocalDate ref = referenceDate != null ? referenceDate : LocalDate.now();
 
-        // Current week: Monday → Sunday
-        LocalDate weekStart = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
-        LocalDate weekEnd = today.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
+        // Week: Monday → Sunday containing the reference date
+        LocalDate weekStart = ref.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        LocalDate weekEnd = ref.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
 
-        // Current month: 1st → last day
-        LocalDate monthStart = today.withDayOfMonth(1);
-        LocalDate monthEnd = today.with(TemporalAdjusters.lastDayOfMonth());
+        // Month: 1st → last day of the reference month
+        LocalDate monthStart = ref.withDayOfMonth(1);
+        LocalDate monthEnd = ref.with(TemporalAdjusters.lastDayOfMonth());
+
+        // Year: Jan 1 → Dec 31 of the reference year
+        LocalDate yearStart = ref.withDayOfYear(1);
+        LocalDate yearEnd = ref.withMonth(12).withDayOfMonth(31);
 
         List<Expense> weekExpenses = expenseRepository.findByDateRange(
                 weekStart.atStartOfDay(), weekEnd.atTime(LocalTime.MAX));
         List<Expense> monthExpenses = expenseRepository.findByDateRange(
                 monthStart.atStartOfDay(), monthEnd.atTime(LocalTime.MAX));
+        List<Expense> yearExpenses = expenseRepository.findByDateRange(
+                yearStart.atStartOfDay(), yearEnd.atTime(LocalTime.MAX));
 
         return DashboardResponse.builder()
                 .week(buildPeriodSummary(weekExpenses, weekStart, weekEnd))
                 .month(buildPeriodSummary(monthExpenses, monthStart, monthEnd))
+                .year(buildPeriodSummary(yearExpenses, yearStart, yearEnd))
                 .build();
     }
 
