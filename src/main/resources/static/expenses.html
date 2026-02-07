@@ -48,6 +48,21 @@
         .nav-link:hover { background: #252830; color: #e1e4e8; }
         .nav-link.active { background: #58a6ff; color: #ffffff; }
 
+        .nav-right { margin-left: auto; }
+
+        .logout-btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            background: transparent;
+            border: 1px solid #2d333b;
+            color: #8b949e;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .logout-btn:hover { background: #da3633; color: #ffffff; border-color: #da3633; }
+
         /* Main content */
         .container { padding: 24px; max-width: 1200px; margin: 0 auto; }
 
@@ -311,6 +326,11 @@
             <a href="/" class="nav-link">Dashboard</a>
             <a href="/expenses.html" class="nav-link active">Expenses</a>
         </div>
+        <div class="nav-right">
+            <form action="/logout" method="POST" style="margin:0">
+                <button type="submit" class="logout-btn">Logout</button>
+            </form>
+        </div>
     </nav>
 
     <div class="container">
@@ -327,7 +347,7 @@
                         <th>Merchant</th>
                         <th>Category</th>
                         <th>Amount</th>
-                        <th>Card</th>
+                        <th>Payment</th>
                         <th>Notes</th>
                         <th>Actions</th>
                     </tr>
@@ -368,19 +388,70 @@
                             <label for="category">Category</label>
                             <select id="category">
                                 <option value="">Auto-detect (AI)</option>
-                                <option value="Food & Drinks">Food & Drinks</option>
-                                <option value="Shopping">Shopping</option>
-                                <option value="Travel">Travel</option>
-                                <option value="Services">Services</option>
-                                <option value="Entertainment">Entertainment</option>
-                                <option value="Health">Health</option>
-                                <option value="Transportation">Transportation</option>
+                                <optgroup label="Food">
+                                    <option value="Groceries">Groceries</option>
+                                    <option value="Restaurants">Restaurants</option>
+                                    <option value="Coffee & Cafes">Coffee & Cafes</option>
+                                    <option value="Fast Food">Fast Food</option>
+                                    <option value="Bars & Alcohol">Bars & Alcohol</option>
+                                </optgroup>
+                                <optgroup label="Transportation">
+                                    <option value="Gas & Fuel">Gas & Fuel</option>
+                                    <option value="Public Transit">Public Transit</option>
+                                    <option value="Rideshare & Taxi">Rideshare & Taxi</option>
+                                    <option value="Parking">Parking</option>
+                                    <option value="Car Maintenance">Car Maintenance</option>
+                                </optgroup>
+                                <optgroup label="Housing">
+                                    <option value="Rent & Mortgage">Rent & Mortgage</option>
+                                    <option value="Utilities">Utilities</option>
+                                    <option value="Internet & Phone">Internet & Phone</option>
+                                    <option value="Insurance">Insurance</option>
+                                </optgroup>
+                                <optgroup label="Shopping">
+                                    <option value="Clothing">Clothing</option>
+                                    <option value="Electronics">Electronics</option>
+                                    <option value="Home & Garden">Home & Garden</option>
+                                </optgroup>
+                                <optgroup label="Health">
+                                    <option value="Pharmacy">Pharmacy</option>
+                                    <option value="Doctor & Dental">Doctor & Dental</option>
+                                    <option value="Gym & Fitness">Gym & Fitness</option>
+                                </optgroup>
+                                <optgroup label="Entertainment">
+                                    <option value="Subscriptions">Subscriptions</option>
+                                    <option value="Streaming">Streaming</option>
+                                    <option value="Movies & Events">Movies & Events</option>
+                                    <option value="Gaming">Gaming</option>
+                                </optgroup>
+                                <optgroup label="Travel">
+                                    <option value="Flights">Flights</option>
+                                    <option value="Hotels">Hotels</option>
+                                    <option value="Car Rental">Car Rental</option>
+                                </optgroup>
+                                <optgroup label="Other">
+                                    <option value="Education">Education</option>
+                                    <option value="Gifts & Donations">Gifts & Donations</option>
+                                    <option value="Pet Care">Pet Care</option>
+                                    <option value="Personal Care">Personal Care</option>
+                                    <option value="Bank & Fees">Bank & Fees</option>
+                                    <option value="Other">Other</option>
+                                </optgroup>
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="cardName">Card Name</label>
-                            <input type="text" id="cardName" placeholder="e.g. Elite World">
+                            <label for="paymentMethod">Payment Method</label>
+                            <select id="paymentMethod" onchange="toggleCardName()">
+                                <option value="Card">Card</option>
+                                <option value="Cash">Cash</option>
+                                <option value="Transfer">Transfer</option>
+                                <option value="Debit">Debit</option>
+                            </select>
                         </div>
+                    </div>
+                    <div class="form-group" id="cardNameGroup">
+                        <label for="cardName">Card Name</label>
+                        <input type="text" id="cardName" placeholder="e.g. Elite World">
                     </div>
                     <div class="form-group">
                         <label for="timestamp">Date & Time</label>
@@ -423,14 +494,48 @@
 
     <script>
         const CATEGORY_COLORS = {
-            'Food & Drinks': '#58a6ff',
-            'Shopping':      '#f78166',
-            'Travel':        '#d2a8ff',
-            'Services':      '#7ee787',
-            'Entertainment': '#ffa657',
-            'Health':        '#ff7b72',
-            'Transportation':'#79c0ff',
-            'Uncategorized': '#484f58'
+            // Food
+            'Groceries':       '#58a6ff',
+            'Restaurants':     '#3b82f6',
+            'Coffee & Cafes':  '#8b5cf6',
+            'Fast Food':       '#f59e0b',
+            'Bars & Alcohol':  '#ec4899',
+            // Transportation
+            'Gas & Fuel':      '#f97316',
+            'Public Transit':  '#06b6d4',
+            'Rideshare & Taxi':'#14b8a6',
+            'Parking':         '#64748b',
+            'Car Maintenance': '#78716c',
+            // Housing
+            'Rent & Mortgage': '#6366f1',
+            'Utilities':       '#8b5cf6',
+            'Internet & Phone':'#a78bfa',
+            'Insurance':       '#7c3aed',
+            // Shopping
+            'Clothing':        '#f78166',
+            'Electronics':     '#fb923c',
+            'Home & Garden':   '#84cc16',
+            // Health
+            'Pharmacy':        '#ff7b72',
+            'Doctor & Dental': '#ef4444',
+            'Gym & Fitness':   '#10b981',
+            // Entertainment
+            'Subscriptions':   '#ffa657',
+            'Streaming':       '#e879f9',
+            'Movies & Events': '#c084fc',
+            'Gaming':          '#22d3ee',
+            // Travel
+            'Flights':         '#d2a8ff',
+            'Hotels':          '#a5b4fc',
+            'Car Rental':      '#93c5fd',
+            // Other
+            'Education':       '#7ee787',
+            'Gifts & Donations':'#fbbf24',
+            'Pet Care':        '#a3e635',
+            'Personal Care':   '#f472b6',
+            'Bank & Fees':     '#94a3b8',
+            'Other':           '#6b7280',
+            'Uncategorized':   '#484f58'
         };
 
         let deleteTargetId = null;
@@ -472,7 +577,7 @@
                         <td>${escapeHtml(exp.merchant)}</td>
                         <td><span class="category-badge" style="color:${color};border:1px solid ${color}33">${escapeHtml(exp.category)}</span></td>
                         <td class="amount-cell">$${parseFloat(exp.amount).toFixed(2)}</td>
-                        <td>${escapeHtml(exp.cardName || '-')}</td>
+                        <td>${escapeHtml(exp.paymentMethod || 'Card')}${exp.cardName ? '<br><span style="font-size:12px;color:#484f58">' + escapeHtml(exp.cardName) + '</span>' : ''}</td>
                         <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(exp.notes || '-')}</td>
                         <td>
                             <div class="actions-cell">
@@ -491,11 +596,22 @@
             return div.innerHTML;
         }
 
+        function toggleCardName() {
+            const method = document.getElementById('paymentMethod').value;
+            const cardGroup = document.getElementById('cardNameGroup');
+            cardGroup.style.display = (method === 'Card' || method === 'Debit') ? 'block' : 'none';
+            if (method !== 'Card' && method !== 'Debit') {
+                document.getElementById('cardName').value = '';
+            }
+        }
+
         // Add modal
         function openAddModal() {
             document.getElementById('modalTitle').textContent = 'Add Expense';
             document.getElementById('expenseId').value = '';
             document.getElementById('expenseForm').reset();
+            document.getElementById('paymentMethod').value = 'Card';
+            toggleCardName();
             // Set default datetime to now
             const now = new Date();
             now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
@@ -510,7 +626,9 @@
             document.getElementById('amount').value = parseFloat(exp.amount);
             document.getElementById('merchant').value = exp.merchant;
             document.getElementById('category').value = exp.category || '';
+            document.getElementById('paymentMethod').value = exp.paymentMethod || 'Card';
             document.getElementById('cardName').value = exp.cardName || '';
+            toggleCardName();
             document.getElementById('notes').value = exp.notes || '';
             if (exp.timestamp) {
                 const dt = new Date(exp.timestamp);
@@ -563,6 +681,7 @@
                 amount: parseFloat(document.getElementById('amount').value),
                 merchant: document.getElementById('merchant').value,
                 category: document.getElementById('category').value || null,
+                paymentMethod: document.getElementById('paymentMethod').value,
                 cardName: document.getElementById('cardName').value || null,
                 notes: document.getElementById('notes').value || null,
                 timestamp: document.getElementById('timestamp').value ? document.getElementById('timestamp').value + ':00' : null

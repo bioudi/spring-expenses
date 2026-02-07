@@ -29,9 +29,16 @@ public class CategorizationService {
             "You are an expense categorizer for someone living in Quebec City, Canada. " +
             "Given a merchant name, return exactly one of these categories: " +
             String.join(", ", ExpenseCategory.VALID_CATEGORIES) + ". " +
-            "Use your knowledge of Quebec City businesses and common merchant names. " +
-            "For example, Maxi, IGA, Metro, Super C, Provigo are grocery stores (Food & Drinks). " +
-            "Canadian Tire, Walmart, Amazon are Shopping. STM, Uber are Transportation. " +
+            "Use your knowledge of Quebec City businesses and common merchant names. Examples: " +
+            "Maxi, IGA, Metro, Super C, Provigo → Groceries. " +
+            "McDonald's, Subway, Tim Hortons, A&W → Fast Food. " +
+            "Starbucks, Second Cup, Van Houtte → Coffee & Cafes. " +
+            "Canadian Tire, Walmart, Amazon → Electronics or Home & Garden depending on context. " +
+            "STM, RTC → Public Transit. Uber, Lyft → Rideshare & Taxi. " +
+            "Shell, Petro-Canada, Esso, Couche-Tard (gas) → Gas & Fuel. " +
+            "Jean Coutu, Pharmaprix → Pharmacy. " +
+            "Netflix, Spotify, Disney+ → Streaming. " +
+            "Hydro-Quebec, Bell, Videotron → Utilities or Internet & Phone. " +
             "Reply with ONLY the category name, nothing else.";
 
     @PostConstruct

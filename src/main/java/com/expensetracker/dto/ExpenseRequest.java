@@ -25,6 +25,8 @@ public class ExpenseRequest {
 
     private String merchant;
 
+    private String paymentMethod;
+
     private String cardName;
 
     private String card;

@@ -61,10 +61,17 @@ public class ExpenseService {
             cardName = request.getCard();
         }
 
+        // Determine payment method: default to "Card" if cardName is present, otherwise use provided or default
+        String paymentMethod = request.getPaymentMethod();
+        if (paymentMethod == null || paymentMethod.isBlank()) {
+            paymentMethod = (cardName != null && !cardName.isBlank()) ? "Card" : "Cash";
+        }
+
         Expense expense = Expense.builder()
                 .amount(request.getAmount())
                 .category(category)
                 .merchant(request.getMerchant())
+                .paymentMethod(paymentMethod)
                 .cardName(cardName)
                 .timestamp(request.getTimestamp() != null ? request.getTimestamp() : LocalDateTime.now())
                 .notes(notes)
@@ -300,13 +307,16 @@ public class ExpenseService {
             expense.setMerchant(request.getMerchant());
         }
 
+        // Payment method
+        if (request.getPaymentMethod() != null && !request.getPaymentMethod().isBlank()) {
+            expense.setPaymentMethod(request.getPaymentMethod());
+        }
+
         String cardName = request.getCardName();
         if ((cardName == null || cardName.isBlank()) && request.getCard() != null) {
             cardName = request.getCard();
         }
-        if (cardName != null) {
-            expense.setCardName(cardName);
-        }
+        expense.setCardName(cardName);
 
         if (request.getTimestamp() != null) {
             expense.setTimestamp(request.getTimestamp());

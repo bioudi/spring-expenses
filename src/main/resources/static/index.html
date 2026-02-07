@@ -49,6 +49,21 @@
         .nav-link:hover { background: #252830; color: #e1e4e8; }
         .nav-link.active { background: #58a6ff; color: #ffffff; }
 
+        .nav-right { margin-left: auto; }
+
+        .logout-btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            background: transparent;
+            border: 1px solid #2d333b;
+            color: #8b949e;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .logout-btn:hover { background: #da3633; color: #ffffff; border-color: #da3633; }
+
         .main-content { padding: 24px; }
 
         .header {
@@ -287,13 +302,18 @@
             <a href="/" class="nav-link active">Dashboard</a>
             <a href="/expenses.html" class="nav-link">Expenses</a>
         </div>
+        <div class="nav-right">
+            <form action="/logout" method="POST" style="margin:0">
+                <button type="submit" class="logout-btn">Logout</button>
+            </form>
+        </div>
     </nav>
     <div class="main-content">
     <div class="header">
         <h1>Dashboard</h1>
         <div class="toggle-group">
-            <button class="toggle-btn active" onclick="switchPeriod('week')">This Week</button>
-            <button class="toggle-btn" onclick="switchPeriod('month')">This Month</button>
+            <button class="toggle-btn" onclick="switchPeriod('week')">This Week</button>
+            <button class="toggle-btn active" onclick="switchPeriod('month')">This Month</button>
         </div>
     </div>
 
@@ -363,17 +383,44 @@
 
     <script>
         const CATEGORY_COLORS = {
-            'Food & Drinks': '#58a6ff',
-            'Shopping':      '#f78166',
-            'Travel':        '#d2a8ff',
-            'Services':      '#7ee787',
-            'Entertainment': '#ffa657',
-            'Health':        '#ff7b72',
-            'Transportation':'#79c0ff'
+            'Groceries':       '#58a6ff',
+            'Restaurants':     '#3b82f6',
+            'Coffee & Cafes':  '#8b5cf6',
+            'Fast Food':       '#f59e0b',
+            'Bars & Alcohol':  '#ec4899',
+            'Gas & Fuel':      '#f97316',
+            'Public Transit':  '#06b6d4',
+            'Rideshare & Taxi':'#14b8a6',
+            'Parking':         '#64748b',
+            'Car Maintenance': '#78716c',
+            'Rent & Mortgage': '#6366f1',
+            'Utilities':       '#8b5cf6',
+            'Internet & Phone':'#a78bfa',
+            'Insurance':       '#7c3aed',
+            'Clothing':        '#f78166',
+            'Electronics':     '#fb923c',
+            'Home & Garden':   '#84cc16',
+            'Pharmacy':        '#ff7b72',
+            'Doctor & Dental': '#ef4444',
+            'Gym & Fitness':   '#10b981',
+            'Subscriptions':   '#ffa657',
+            'Streaming':       '#e879f9',
+            'Movies & Events': '#c084fc',
+            'Gaming':          '#22d3ee',
+            'Flights':         '#d2a8ff',
+            'Hotels':          '#a5b4fc',
+            'Car Rental':      '#93c5fd',
+            'Education':       '#7ee787',
+            'Gifts & Donations':'#fbbf24',
+            'Pet Care':        '#a3e635',
+            'Personal Care':   '#f472b6',
+            'Bank & Fees':     '#94a3b8',
+            'Other':           '#6b7280',
+            'Uncategorized':   '#484f58'
         };
 
         let dashboardData = null;
-        let currentPeriod = 'week';
+        let currentPeriod = 'month';
         let categoryChart = null;
         let merchantChart = null;
         let dailyChart = null;
