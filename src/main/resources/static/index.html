@@ -13,8 +13,43 @@
             background: #0f1117;
             color: #e1e4e8;
             min-height: 100vh;
-            padding: 24px;
         }
+
+        .nav {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            padding: 16px 24px;
+            background: #1c1f26;
+            border-bottom: 1px solid #2d333b;
+            margin-bottom: 0;
+        }
+
+        .nav-brand {
+            font-size: 20px;
+            font-weight: 700;
+            color: #ffffff;
+            text-decoration: none;
+        }
+
+        .nav-brand span { color: #58a6ff; }
+
+        .nav-links { display: flex; gap: 4px; }
+
+        .nav-link {
+            padding: 8px 16px;
+            border-radius: 6px;
+            color: #8b949e;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .nav-link:hover { background: #252830; color: #e1e4e8; }
+        .nav-link.active { background: #58a6ff; color: #ffffff; }
+
+        .main-content { padding: 24px; }
 
         .header {
             display: flex;
@@ -246,8 +281,16 @@
     </style>
 </head>
 <body>
+    <nav class="nav">
+        <a href="/" class="nav-brand"><span>$</span> Expense Tracker</a>
+        <div class="nav-links">
+            <a href="/" class="nav-link active">Dashboard</a>
+            <a href="/expenses.html" class="nav-link">Expenses</a>
+        </div>
+    </nav>
+    <div class="main-content">
     <div class="header">
-        <h1><span>$</span> Expense Tracker</h1>
+        <h1>Dashboard</h1>
         <div class="toggle-group">
             <button class="toggle-btn active" onclick="switchPeriod('week')">This Week</button>
             <button class="toggle-btn" onclick="switchPeriod('month')">This Month</button>
@@ -542,5 +585,6 @@
         // Init
         fetchDashboard();
     </script>
+    </div>
 </body>
 </html>

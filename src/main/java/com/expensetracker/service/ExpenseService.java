@@ -3,6 +3,7 @@ package com.expensetracker.service;
 import com.expensetracker.config.ExpenseCategory;
 import com.expensetracker.dto.*;
 import com.expensetracker.entity.Expense;
+import com.expensetracker.exception.ExpenseNotFoundException;
 import com.expensetracker.exception.InvalidCategoryException;
 import com.expensetracker.repository.ExpenseRepository;
 import lombok.RequiredArgsConstructor;
@@ -267,6 +268,68 @@ public class ExpenseService {
                 .topMerchants(topMerchants)
                 .dailySpending(dailySpending)
                 .build();
+    }
+
+    @Transactional(readOnly = true)
+    public ExpenseResponse getExpenseById(UUID id) {
+        Expense expense = expenseRepository.findById(id)
+                .orElseThrow(() -> new ExpenseNotFoundException(id));
+        return ExpenseResponse.fromEntity(expense);
+    }
+
+    @Transactional
+    public ExpenseResponse updateExpense(UUID id, ExpenseRequest request) {
+        Expense expense = expenseRepository.findById(id)
+                .orElseThrow(() -> new ExpenseNotFoundException(id));
+
+        // Determine category
+        String category;
+        if (request.getCategory() != null && !request.getCategory().isBlank()) {
+            category = request.getCategory();
+            validateCategory(category);
+        } else {
+            String merchant = request.getMerchant() != null ? request.getMerchant() : expense.getMerchant();
+            String aiCategory = categorizationService.categorize(merchant);
+            category = aiCategory != null ? aiCategory : DEFAULT_CATEGORY;
+        }
+
+        // Update fields
+        expense.setAmount(request.getAmount());
+        expense.setCategory(category);
+        if (request.getMerchant() != null) {
+            expense.setMerchant(request.getMerchant());
+        }
+
+        String cardName = request.getCardName();
+        if ((cardName == null || cardName.isBlank()) && request.getCard() != null) {
+            cardName = request.getCard();
+        }
+        if (cardName != null) {
+            expense.setCardName(cardName);
+        }
+
+        if (request.getTimestamp() != null) {
+            expense.setTimestamp(request.getTimestamp());
+        }
+
+        String notes = request.getNotes();
+        if ((notes == null || notes.isBlank()) && request.getName() != null) {
+            notes = request.getName();
+        }
+        expense.setNotes(notes);
+
+        Expense saved = expenseRepository.save(expense);
+        log.info("Updated expense {}: merchant='{}', category='{}', amount={}", id, saved.getMerchant(), saved.getCategory(), saved.getAmount());
+        return ExpenseResponse.fromEntity(saved);
+    }
+
+    @Transactional
+    public ExpenseResponse deleteExpense(UUID id) {
+        Expense expense = expenseRepository.findById(id)
+                .orElseThrow(() -> new ExpenseNotFoundException(id));
+        expenseRepository.delete(expense);
+        log.info("Deleted expense {}: merchant='{}', amount={}", id, expense.getMerchant(), expense.getAmount());
+        return ExpenseResponse.fromEntity(expense);
     }
 
     private void validateCategory(String category) {
