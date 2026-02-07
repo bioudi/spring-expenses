@@ -6,6 +6,7 @@ import com.expensetracker.entity.Expense;
 import com.expensetracker.exception.InvalidCategoryException;
 import com.expensetracker.repository.ExpenseRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,24 +20,32 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ExpenseService {
 
     private final ExpenseRepository expenseRepository;
+    private final CategorizationService categorizationService;
 
     private static final String DEFAULT_CATEGORY = "Uncategorized";
 
     @Transactional
     public ExpenseResponse createExpense(ExpenseRequest request) {
-        // Use provided category or default to "Uncategorized"
-        String category = (request.getCategory() != null && !request.getCategory().isBlank())
-                ? request.getCategory()
-                : DEFAULT_CATEGORY;
+        String category;
 
-        // Only validate if a category was explicitly provided and it's not the default
         if (request.getCategory() != null && !request.getCategory().isBlank()) {
+            // Explicit category provided — validate it
+            category = request.getCategory();
             validateCategory(category);
+            log.info("Expense for merchant '{}' — using provided category: '{}'", request.getMerchant(), category);
+        } else {
+            // No category — try AI categorization based on merchant name
+            log.info("No category provided for merchant '{}', requesting AI categorization...", request.getMerchant());
+            String aiCategory = categorizationService.categorize(request.getMerchant());
+            category = aiCategory != null ? aiCategory : DEFAULT_CATEGORY;
+            log.info("Expense for merchant '{}' — final category: '{}' (source: {})",
+                    request.getMerchant(), category, aiCategory != null ? "Claude AI" : "default fallback");
         }
 
         // Use "name" field as notes if notes is empty

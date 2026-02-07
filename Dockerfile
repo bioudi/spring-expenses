@@ -14,4 +14,4 @@ COPY --from=build /app/target/*.jar app.jar
 RUN chown -R appuser:appgroup /app
 USER appuser
 EXPOSE 8080
-ENTRYPOINT ["java", "-Djava.net.preferIPv6Addresses=true", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-Djava.net.preferIPv4Stack=true", "-jar", "app.jar"]
