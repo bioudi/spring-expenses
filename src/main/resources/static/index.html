@@ -519,7 +519,7 @@
             currentPeriod = period;
             document.querySelectorAll('.toggle-btn').forEach(btn => btn.classList.remove('active'));
             document.querySelector(`.toggle-btn[data-period="${period}"]`).classList.add('active');
-            render();
+            fetchDashboard();
         }
 
         function navigatePeriod(direction) {
@@ -543,10 +543,7 @@
         function isCurrentPeriod() {
             const now = new Date();
             if (currentPeriod === 'week') {
-                // Same week if within 6 days
-                const diff = Math.abs(now - referenceDate);
-                return diff < 7 * 24 * 60 * 60 * 1000 &&
-                    getMonday(now).getTime() === getMonday(referenceDate).getTime();
+                return toDateString(getMonday(now)) === toDateString(getMonday(referenceDate));
             } else if (currentPeriod === 'month') {
                 return now.getMonth() === referenceDate.getMonth() &&
                     now.getFullYear() === referenceDate.getFullYear();
@@ -557,9 +554,11 @@
 
         function getMonday(d) {
             const date = new Date(d);
+            date.setHours(0, 0, 0, 0);
             const day = date.getDay();
             const diff = date.getDate() - day + (day === 0 ? -6 : 1);
-            return new Date(date.setDate(diff));
+            date.setDate(diff);
+            return date;
         }
 
         function getPeriodNavLabel() {
