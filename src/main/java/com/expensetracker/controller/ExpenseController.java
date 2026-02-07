@@ -1,5 +1,6 @@
 package com.expensetracker.controller;
 
+import com.expensetracker.dto.DashboardResponse;
 import com.expensetracker.dto.ExpenseResponse;
 import com.expensetracker.dto.ExpenseSummary;
 import com.expensetracker.service.ExpenseService;
@@ -32,5 +33,11 @@ public class ExpenseController {
     public ResponseEntity<ExpenseSummary> getSummary() {
         ExpenseSummary summary = expenseService.getSummary();
         return ResponseEntity.ok(summary);
+    }
+
+    @GetMapping("/dashboard")
+    public ResponseEntity<DashboardResponse> getDashboard() {
+        DashboardResponse dashboard = expenseService.getDashboard();
+        return ResponseEntity.ok(dashboard);
     }
 }

@@ -15,9 +15,9 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.time.DayOfWeek;
+import java.time.temporal.TemporalAdjusters;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -145,6 +145,127 @@ public class ExpenseService {
                 .totalSpent(totalSpent)
                 .transactionCount(allExpenses.size())
                 .categoryBreakdown(breakdown)
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public DashboardResponse getDashboard() {
+        LocalDate today = LocalDate.now();
+
+        // Current week: Monday → Sunday
+        LocalDate weekStart = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        LocalDate weekEnd = today.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
+
+        // Current month: 1st → last day
+        LocalDate monthStart = today.withDayOfMonth(1);
+        LocalDate monthEnd = today.with(TemporalAdjusters.lastDayOfMonth());
+
+        List<Expense> weekExpenses = expenseRepository.findByDateRange(
+                weekStart.atStartOfDay(), weekEnd.atTime(LocalTime.MAX));
+        List<Expense> monthExpenses = expenseRepository.findByDateRange(
+                monthStart.atStartOfDay(), monthEnd.atTime(LocalTime.MAX));
+
+        return DashboardResponse.builder()
+                .week(buildPeriodSummary(weekExpenses, weekStart, weekEnd))
+                .month(buildPeriodSummary(monthExpenses, monthStart, monthEnd))
+                .build();
+    }
+
+    private DashboardResponse.PeriodSummary buildPeriodSummary(List<Expense> expenses, LocalDate start, LocalDate end) {
+        if (expenses.isEmpty()) {
+            // Fill daily spending with zeros for each day in the period
+            List<DashboardResponse.DailySpending> emptyDays = new ArrayList<>();
+            for (LocalDate d = start; !d.isAfter(end); d = d.plusDays(1)) {
+                emptyDays.add(DashboardResponse.DailySpending.builder()
+                        .date(d).total(BigDecimal.ZERO).count(0).build());
+            }
+            return DashboardResponse.PeriodSummary.builder()
+                    .startDate(start)
+                    .endDate(end)
+                    .totalSpent(BigDecimal.ZERO)
+                    .transactionCount(0)
+                    .avgPerTransaction(BigDecimal.ZERO)
+                    .categoryBreakdown(Map.of())
+                    .topMerchants(List.of())
+                    .dailySpending(emptyDays)
+                    .build();
+        }
+
+        // Total + count + average
+        BigDecimal totalSpent = expenses.stream()
+                .map(Expense::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        long count = expenses.size();
+        BigDecimal avg = totalSpent.divide(BigDecimal.valueOf(count), 2, RoundingMode.HALF_UP);
+
+        // Category breakdown
+        Map<String, List<Expense>> byCategory = expenses.stream()
+                .collect(Collectors.groupingBy(Expense::getCategory));
+        Map<String, DashboardResponse.CategoryBreakdown> categoryBreakdown = new LinkedHashMap<>();
+
+        for (String cat : ExpenseCategory.VALID_CATEGORIES) {
+            List<Expense> catExpenses = byCategory.getOrDefault(cat, List.of());
+            if (!catExpenses.isEmpty()) {
+                BigDecimal catTotal = catExpenses.stream()
+                        .map(Expense::getAmount)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+                BigDecimal percentage = catTotal
+                        .multiply(BigDecimal.valueOf(100))
+                        .divide(totalSpent, 2, RoundingMode.HALF_UP);
+                BigDecimal catAvg = catTotal.divide(BigDecimal.valueOf(catExpenses.size()), 2, RoundingMode.HALF_UP);
+
+                categoryBreakdown.put(cat, DashboardResponse.CategoryBreakdown.builder()
+                        .total(catTotal)
+                        .count(catExpenses.size())
+                        .percentage(percentage)
+                        .avgPerTransaction(catAvg)
+                        .build());
+            }
+        }
+
+        // Top 5 merchants
+        Map<String, List<Expense>> byMerchant = expenses.stream()
+                .collect(Collectors.groupingBy(Expense::getMerchant));
+        List<DashboardResponse.MerchantSummary> topMerchants = byMerchant.entrySet().stream()
+                .map(entry -> {
+                    BigDecimal merchantTotal = entry.getValue().stream()
+                            .map(Expense::getAmount)
+                            .reduce(BigDecimal.ZERO, BigDecimal::add);
+                    return DashboardResponse.MerchantSummary.builder()
+                            .merchant(entry.getKey())
+                            .total(merchantTotal)
+                            .count(entry.getValue().size())
+                            .build();
+                })
+                .sorted(Comparator.comparing(DashboardResponse.MerchantSummary::getTotal).reversed())
+                .limit(5)
+                .collect(Collectors.toList());
+
+        // Daily spending (fill zero-days)
+        Map<LocalDate, List<Expense>> byDate = expenses.stream()
+                .collect(Collectors.groupingBy(e -> e.getTimestamp().toLocalDate()));
+        List<DashboardResponse.DailySpending> dailySpending = new ArrayList<>();
+        for (LocalDate d = start; !d.isAfter(end); d = d.plusDays(1)) {
+            List<Expense> dayExpenses = byDate.getOrDefault(d, List.of());
+            BigDecimal dayTotal = dayExpenses.stream()
+                    .map(Expense::getAmount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            dailySpending.add(DashboardResponse.DailySpending.builder()
+                    .date(d)
+                    .total(dayTotal)
+                    .count(dayExpenses.size())
+                    .build());
+        }
+
+        return DashboardResponse.PeriodSummary.builder()
+                .startDate(start)
+                .endDate(end)
+                .totalSpent(totalSpent)
+                .transactionCount(count)
+                .avgPerTransaction(avg)
+                .categoryBreakdown(categoryBreakdown)
+                .topMerchants(topMerchants)
+                .dailySpending(dailySpending)
                 .build();
     }
 

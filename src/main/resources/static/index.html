@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expense Tracker Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f1117;
+            color: #e1e4e8;
+            min-height: 100vh;
+            padding: 24px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .header h1 span {
+            color: #58a6ff;
+        }
+
+        .toggle-group {
+            display: flex;
+            background: #1c1f26;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #2d333b;
+        }
+
+        .toggle-btn {
+            padding: 10px 24px;
+            border: none;
+            background: transparent;
+            color: #8b949e;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .toggle-btn.active {
+            background: #58a6ff;
+            color: #ffffff;
+        }
+
+        .toggle-btn:hover:not(.active) {
+            background: #252830;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: #1c1f26;
+            border: 1px solid #2d333b;
+            border-radius: 12px;
+            padding: 24px;
+        }
+
+        .stat-card .label {
+            font-size: 13px;
+            color: #8b949e;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .stat-card .value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .stat-card .value.money::before {
+            content: '$';
+            color: #58a6ff;
+        }
+
+        .stat-card .period-label {
+            font-size: 12px;
+            color: #484f58;
+            margin-top: 8px;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .chart-card {
+            background: #1c1f26;
+            border: 1px solid #2d333b;
+            border-radius: 12px;
+            padding: 24px;
+        }
+
+        .chart-card h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #e1e4e8;
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 280px;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .merchant-list {
+            list-style: none;
+            margin-top: 16px;
+        }
+
+        .merchant-list li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #2d333b;
+        }
+
+        .merchant-list li:last-child {
+            border-bottom: none;
+        }
+
+        .merchant-rank {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #252830;
+            font-size: 12px;
+            font-weight: 600;
+            color: #58a6ff;
+            margin-right: 12px;
+        }
+
+        .merchant-name {
+            flex: 1;
+            font-weight: 500;
+        }
+
+        .merchant-amount {
+            font-weight: 600;
+            color: #58a6ff;
+        }
+
+        .merchant-count {
+            font-size: 12px;
+            color: #484f58;
+            margin-left: 8px;
+        }
+
+        .category-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+        }
+
+        .category-table th {
+            text-align: left;
+            font-size: 12px;
+            color: #8b949e;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 8px 12px;
+            border-bottom: 1px solid #2d333b;
+        }
+
+        .category-table th:not(:first-child) {
+            text-align: right;
+        }
+
+        .category-table td {
+            padding: 12px;
+            border-bottom: 1px solid #1c1f26;
+            font-size: 14px;
+        }
+
+        .category-table td:not(:first-child) {
+            text-align: right;
+        }
+
+        .category-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 400px;
+            font-size: 18px;
+            color: #8b949e;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 48px;
+            color: #484f58;
+        }
+
+        .empty-state h3 {
+            font-size: 20px;
+            margin-bottom: 8px;
+            color: #8b949e;
+        }
+
+        @media (max-width: 768px) {
+            body { padding: 16px; }
+            .charts-grid { grid-template-columns: 1fr; }
+            .header { flex-direction: column; gap: 16px; align-items: flex-start; }
+            .stat-card .value { font-size: 24px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1><span>$</span> Expense Tracker</h1>
+        <div class="toggle-group">
+            <button class="toggle-btn active" onclick="switchPeriod('week')">This Week</button>
+            <button class="toggle-btn" onclick="switchPeriod('month')">This Month</button>
+        </div>
+    </div>
+
+    <div id="loading" class="loading">Loading dashboard...</div>
+    <div id="dashboard" style="display: none;">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="label">Total Spent</div>
+                <div class="value money" id="totalSpent">0.00</div>
+                <div class="period-label" id="periodLabel"></div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Transactions</div>
+                <div class="value" id="transactionCount">0</div>
+                <div class="period-label" id="periodLabel2"></div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Avg per Transaction</div>
+                <div class="value money" id="avgPerTransaction">0.00</div>
+                <div class="period-label" id="periodLabel3"></div>
+            </div>
+        </div>
+
+        <div class="charts-grid">
+            <div class="chart-card">
+                <h3>Category Breakdown</h3>
+                <div class="chart-container">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <h3>Top Merchants</h3>
+                <div class="chart-container">
+                    <canvas id="merchantChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card full-width">
+                <h3>Daily Spending</h3>
+                <div class="chart-container">
+                    <canvas id="dailyChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="charts-grid">
+            <div class="chart-card">
+                <h3>Category Details</h3>
+                <table class="category-table" id="categoryTable">
+                    <thead>
+                        <tr>
+                            <th>Category</th>
+                            <th>Total</th>
+                            <th>Count</th>
+                            <th>Avg</th>
+                            <th>%</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div class="chart-card">
+                <h3>Top Merchants</h3>
+                <ul class="merchant-list" id="merchantList"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const CATEGORY_COLORS = {
+            'Food & Drinks': '#58a6ff',
+            'Shopping':      '#f78166',
+            'Travel':        '#d2a8ff',
+            'Services':      '#7ee787',
+            'Entertainment': '#ffa657',
+            'Health':        '#ff7b72',
+            'Transportation':'#79c0ff'
+        };
+
+        let dashboardData = null;
+        let currentPeriod = 'week';
+        let categoryChart = null;
+        let merchantChart = null;
+        let dailyChart = null;
+
+        async function fetchDashboard() {
+            try {
+                const res = await fetch('/api/expenses/dashboard');
+                dashboardData = await res.json();
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('dashboard').style.display = 'block';
+                render();
+            } catch (err) {
+                document.getElementById('loading').textContent = 'Failed to load dashboard. Is the API running?';
+                console.error(err);
+            }
+        }
+
+        function switchPeriod(period) {
+            currentPeriod = period;
+            document.querySelectorAll('.toggle-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            render();
+        }
+
+        function formatMoney(val) {
+            return parseFloat(val || 0).toFixed(2);
+        }
+
+        function formatDate(dateStr) {
+            const d = new Date(dateStr + 'T00:00:00');
+            return d.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' });
+        }
+
+        function render() {
+            const data = dashboardData[currentPeriod];
+            if (!data) return;
+
+            const periodText = currentPeriod === 'week'
+                ? `${formatDate(data.startDate)} - ${formatDate(data.endDate)}`
+                : `${formatDate(data.startDate)} - ${formatDate(data.endDate)}`;
+
+            // Stats cards
+            document.getElementById('totalSpent').textContent = formatMoney(data.totalSpent);
+            document.getElementById('transactionCount').textContent = data.transactionCount;
+            document.getElementById('avgPerTransaction').textContent = formatMoney(data.avgPerTransaction);
+            document.getElementById('periodLabel').textContent = periodText;
+            document.getElementById('periodLabel2').textContent = periodText;
+            document.getElementById('periodLabel3').textContent = periodText;
+
+            renderCategoryChart(data);
+            renderMerchantChart(data);
+            renderDailyChart(data);
+            renderCategoryTable(data);
+            renderMerchantList(data);
+        }
+
+        function renderCategoryChart(data) {
+            const categories = Object.keys(data.categoryBreakdown || {});
+            const totals = categories.map(c => parseFloat(data.categoryBreakdown[c].total));
+            const colors = categories.map(c => CATEGORY_COLORS[c] || '#8b949e');
+
+            if (categoryChart) categoryChart.destroy();
+
+            categoryChart = new Chart(document.getElementById('categoryChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: categories,
+                    datasets: [{
+                        data: totals,
+                        backgroundColor: colors,
+                        borderColor: '#1c1f26',
+                        borderWidth: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: { color: '#8b949e', padding: 12, font: { size: 12 } }
+                        }
+                    },
+                    cutout: '65%'
+                }
+            });
+        }
+
+        function renderMerchantChart(data) {
+            const merchants = (data.topMerchants || []);
+            const names = merchants.map(m => m.merchant);
+            const totals = merchants.map(m => parseFloat(m.total));
+
+            if (merchantChart) merchantChart.destroy();
+
+            merchantChart = new Chart(document.getElementById('merchantChart'), {
+                type: 'bar',
+                data: {
+                    labels: names,
+                    datasets: [{
+                        data: totals,
+                        backgroundColor: '#58a6ff',
+                        borderRadius: 6,
+                        barThickness: 28
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#8b949e', callback: v => '$' + v },
+                            grid: { color: '#2d333b' }
+                        },
+                        y: {
+                            ticks: { color: '#e1e4e8', font: { size: 13 } },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderDailyChart(data) {
+            const days = (data.dailySpending || []);
+            const labels = days.map(d => formatDate(d.date));
+            const totals = days.map(d => parseFloat(d.total));
+
+            if (dailyChart) dailyChart.destroy();
+
+            dailyChart = new Chart(document.getElementById('dailyChart'), {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Spent',
+                        data: totals,
+                        backgroundColor: 'rgba(88, 166, 255, 0.3)',
+                        borderColor: '#58a6ff',
+                        borderWidth: 2,
+                        borderRadius: 6,
+                        barThickness: 'flex'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#8b949e' },
+                            grid: { display: false }
+                        },
+                        y: {
+                            ticks: { color: '#8b949e', callback: v => '$' + v },
+                            grid: { color: '#2d333b' },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderCategoryTable(data) {
+            const tbody = document.querySelector('#categoryTable tbody');
+            const categories = Object.entries(data.categoryBreakdown || {});
+
+            if (categories.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#484f58;padding:24px;">No expenses this period</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = categories.map(([name, cat]) => `
+                <tr>
+                    <td><span class="category-dot" style="background:${CATEGORY_COLORS[name] || '#8b949e'}"></span>${name}</td>
+                    <td>$${formatMoney(cat.total)}</td>
+                    <td>${cat.count}</td>
+                    <td>$${formatMoney(cat.avgPerTransaction)}</td>
+                    <td>${parseFloat(cat.percentage).toFixed(1)}%</td>
+                </tr>
+            `).join('');
+        }
+
+        function renderMerchantList(data) {
+            const list = document.getElementById('merchantList');
+            const merchants = data.topMerchants || [];
+
+            if (merchants.length === 0) {
+                list.innerHTML = '<li style="justify-content:center;color:#484f58;">No expenses this period</li>';
+                return;
+            }
+
+            list.innerHTML = merchants.map((m, i) => `
+                <li>
+                    <span class="merchant-rank">${i + 1}</span>
+                    <span class="merchant-name">${m.merchant}</span>
+                    <span class="merchant-amount">$${formatMoney(m.total)}</span>
+                    <span class="merchant-count">${m.count} txn${m.count > 1 ? 's' : ''}</span>
+                </li>
+            `).join('');
+        }
+
+        // Init
+        fetchDashboard();
+    </script>
+</body>
+</html>
