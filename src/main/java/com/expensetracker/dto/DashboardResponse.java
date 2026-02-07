@@ -14,6 +14,7 @@ import java.util.Map;
 @Builder
 public class DashboardResponse {
 
+    private PeriodSummary today;
     private PeriodSummary week;
     private PeriodSummary month;
     private PeriodSummary year;

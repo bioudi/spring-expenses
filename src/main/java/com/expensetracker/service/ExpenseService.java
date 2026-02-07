@@ -160,6 +160,10 @@ public class ExpenseService {
     public DashboardResponse getDashboard(LocalDate referenceDate) {
         LocalDate ref = referenceDate != null ? referenceDate : LocalDate.now();
 
+        // Today: single day
+        List<Expense> todayExpenses = expenseRepository.findByDateRange(
+                ref.atStartOfDay(), ref.atTime(LocalTime.MAX));
+
         // Week: Monday → Sunday containing the reference date
         LocalDate weekStart = ref.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         LocalDate weekEnd = ref.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
@@ -180,6 +184,7 @@ public class ExpenseService {
                 yearStart.atStartOfDay(), yearEnd.atTime(LocalTime.MAX));
 
         return DashboardResponse.builder()
+                .today(buildPeriodSummary(todayExpenses, ref, ref))
                 .week(buildPeriodSummary(weekExpenses, weekStart, weekEnd))
                 .month(buildPeriodSummary(monthExpenses, monthStart, monthEnd))
                 .year(buildPeriodSummary(yearExpenses, yearStart, yearEnd))

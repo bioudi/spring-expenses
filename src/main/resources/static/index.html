@@ -148,20 +148,6 @@
             text-align: center;
         }
 
-        .period-nav-today {
-            padding: 6px 12px;
-            border: 1px solid #2d333b;
-            border-radius: 6px;
-            background: transparent;
-            color: #8b949e;
-            font-size: 12px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .period-nav-today:hover { background: #252830; color: #e1e4e8; }
-        .period-nav-today.hidden { display: none; }
-
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -370,9 +356,9 @@
                 <button class="period-nav-btn" onclick="navigatePeriod(-1)">&larr;</button>
                 <span class="period-nav-label" id="periodNavLabel"></span>
                 <button class="period-nav-btn" onclick="navigatePeriod(1)">&rarr;</button>
-                <button class="period-nav-today hidden" id="todayBtn" onclick="goToToday()">Today</button>
             </div>
             <div class="toggle-group">
+                <button class="toggle-btn" data-period="today" onclick="switchPeriod('today')">Today</button>
                 <button class="toggle-btn" data-period="week" onclick="switchPeriod('week')">Week</button>
                 <button class="toggle-btn active" data-period="month" onclick="switchPeriod('month')">Month</button>
                 <button class="toggle-btn" data-period="year" onclick="switchPeriod('year')">Year</button>
@@ -524,7 +510,9 @@
 
         function navigatePeriod(direction) {
             const d = new Date(referenceDate);
-            if (currentPeriod === 'week') {
+            if (currentPeriod === 'today') {
+                d.setDate(d.getDate() + direction);
+            } else if (currentPeriod === 'week') {
                 d.setDate(d.getDate() + (direction * 7));
             } else if (currentPeriod === 'month') {
                 d.setMonth(d.getMonth() + direction);
@@ -535,36 +523,13 @@
             fetchDashboard();
         }
 
-        function goToToday() {
-            referenceDate = new Date();
-            fetchDashboard();
-        }
-
-        function isCurrentPeriod() {
-            const now = new Date();
-            if (currentPeriod === 'week') {
-                return toDateString(getMonday(now)) === toDateString(getMonday(referenceDate));
-            } else if (currentPeriod === 'month') {
-                return now.getMonth() === referenceDate.getMonth() &&
-                    now.getFullYear() === referenceDate.getFullYear();
-            } else {
-                return now.getFullYear() === referenceDate.getFullYear();
-            }
-        }
-
-        function getMonday(d) {
-            const date = new Date(d);
-            date.setHours(0, 0, 0, 0);
-            const day = date.getDay();
-            const diff = date.getDate() - day + (day === 0 ? -6 : 1);
-            date.setDate(diff);
-            return date;
-        }
-
         function getPeriodNavLabel() {
             const data = dashboardData[currentPeriod];
             if (!data) return '';
-            if (currentPeriod === 'week') {
+            if (currentPeriod === 'today') {
+                const d = new Date(data.startDate + 'T00:00:00');
+                return d.toLocaleDateString('en-CA', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+            } else if (currentPeriod === 'week') {
                 return `${formatDate(data.startDate)} - ${formatDate(data.endDate)}, ${new Date(data.startDate + 'T00:00:00').getFullYear()}`;
             } else if (currentPeriod === 'month') {
                 const d = new Date(data.startDate + 'T00:00:00');
@@ -590,10 +555,6 @@
             // Update period nav label
             const navLabel = getPeriodNavLabel();
             document.getElementById('periodNavLabel').textContent = navLabel;
-
-            // Show/hide Today button
-            const todayBtn = document.getElementById('todayBtn');
-            todayBtn.classList.toggle('hidden', isCurrentPeriod());
 
             const periodText = navLabel;
 
