@@ -1,10 +1,14 @@
 # Stage 1: Build
 FROM maven:3.9.6-eclipse-temurin-21-alpine AS build
+RUN apk add --no-cache nodejs npm
 WORKDIR /app
 COPY pom.xml .
+COPY frontend/package.json frontend/package-lock.json ./frontend/
 RUN mvn dependency:go-offline -B
+RUN cd frontend && npm ci
 COPY src ./src
-RUN mvn package -DskipTests -B
+COPY frontend ./frontend
+RUN mvn package -DskipTests -B -Dskip.npm.install=true
 
 # Stage 2: Runtime
 FROM eclipse-temurin:21-jre-alpine

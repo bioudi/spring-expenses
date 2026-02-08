@@ -8,3 +8,6 @@ target/
 *.iml
 .DS_Store
 README.md
+frontend/node_modules/
+frontend/dist/
+frontend/node/

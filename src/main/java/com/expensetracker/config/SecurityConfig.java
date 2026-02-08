@@ -18,21 +18,22 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/webhook/**").permitAll()
-                        .requestMatchers("/login.html", "/login").permitAll()
-                        .requestMatchers("/register.html", "/api/auth/register").permitAll()
+                        .requestMatchers("/login", "/register").permitAll()
+                        .requestMatchers("/api/auth/register").permitAll()
+                        .requestMatchers("/assets/**", "/favicon.ico", "/index.html").permitAll()
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
-                        .loginPage("/login.html")
+                        .loginPage("/login")
                         .loginProcessingUrl("/login")
                         .usernameParameter("email")
                         .defaultSuccessUrl("/", true)
-                        .failureUrl("/login.html?error=true")
+                        .failureUrl("/login?error=true")
                         .permitAll()
                 )
                 .logout(logout -> logout
                         .logoutUrl("/logout")
-                        .logoutSuccessUrl("/login.html?logout=true")
+                        .logoutSuccessUrl("/login?logout=true")
                         .permitAll()
                 )
                 .exceptionHandling(ex -> ex
@@ -44,7 +45,7 @@ public class SecurityConfig {
                                 response.setContentType("application/json");
                                 response.getWriter().write("{\"error\":\"Unauthorized\"}");
                             } else {
-                                response.sendRedirect("/login.html");
+                                response.sendRedirect("/login");
                             }
                         })
                 )
