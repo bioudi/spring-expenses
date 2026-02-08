@@ -7,8 +7,10 @@ import com.anthropic.models.messages.MessageCreateParams;
 import com.anthropic.models.messages.Model;
 import com.expensetracker.config.ExpenseCategory;
 import com.expensetracker.entity.MerchantCategory;
+import com.expensetracker.entity.User;
 import com.expensetracker.repository.MerchantCategoryRepository;
 import jakarta.annotation.PostConstruct;
+import jakarta.persistence.EntityManager;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -27,12 +29,15 @@ public class CategorizationService {
 
     private AnthropicClient client;
 
+    // Cache key is "userId:merchantKey"
     private final Map<String, String> categoryCache = new ConcurrentHashMap<>();
 
     private final MerchantCategoryRepository merchantCategoryRepository;
+    private final EntityManager entityManager;
 
-    public CategorizationService(MerchantCategoryRepository merchantCategoryRepository) {
+    public CategorizationService(MerchantCategoryRepository merchantCategoryRepository, EntityManager entityManager) {
         this.merchantCategoryRepository = merchantCategoryRepository;
+        this.entityManager = entityManager;
     }
 
     private static final String SYSTEM_PROMPT =
@@ -62,15 +67,16 @@ public class CategorizationService {
             log.warn("ANTHROPIC_API_KEY not set — AI categorization disabled, expenses without a category will be 'Uncategorized'");
         }
 
-        // Load persistent cache from database
+        // Load persistent cache from database with composite key userId:merchantKey
         List<MerchantCategory> mappings = merchantCategoryRepository.findAll();
         for (MerchantCategory mc : mappings) {
-            categoryCache.put(mc.getMerchantKey(), mc.getCategory());
+            String cacheKey = (mc.getUser() != null ? mc.getUser().getId().toString() : "global") + ":" + mc.getMerchantKey();
+            categoryCache.put(cacheKey, mc.getCategory());
         }
         log.info("Loaded {} merchant→category mappings from database into cache", mappings.size());
     }
 
-    public String categorize(String merchant) {
+    public String categorize(String merchant, UUID userId) {
         if (client == null) {
             log.warn("Skipping AI categorization — Anthropic client not initialized (is ANTHROPIC_API_KEY set?)");
             return null;
@@ -81,8 +87,9 @@ public class CategorizationService {
         }
 
         String normalizedMerchant = merchant.trim().toLowerCase();
+        String cacheKey = userId.toString() + ":" + normalizedMerchant;
 
-        String cached = categoryCache.get(normalizedMerchant);
+        String cached = categoryCache.get(cacheKey);
         if (cached != null) {
             log.info("Cache hit — merchant '{}' already categorized as '{}'", merchant, cached);
             return cached;
@@ -102,12 +109,14 @@ public class CategorizationService {
             String category = message.content().get(0).asText().text().trim();
 
             if (ExpenseCategory.isValid(category)) {
-                categoryCache.put(normalizedMerchant, category);
+                categoryCache.put(cacheKey, category);
 
-                // Persist to database
+                // Persist to database with user reference
+                User userRef = entityManager.getReference(User.class, userId);
                 MerchantCategory mc = MerchantCategory.builder()
                         .merchantKey(normalizedMerchant)
                         .category(category)
+                        .user(userRef)
                         .build();
                 merchantCategoryRepository.save(mc);
 
@@ -125,25 +134,27 @@ public class CategorizationService {
 
     // --- Methods for Merchant UI ---
 
-    public List<MerchantCategory> getAllMappings() {
-        return merchantCategoryRepository.findAll();
+    public List<MerchantCategory> getAllMappings(UUID userId) {
+        return merchantCategoryRepository.findAllByUserId(userId);
     }
 
-    public MerchantCategory updateMapping(UUID id, String category) {
-        MerchantCategory mc = merchantCategoryRepository.findById(id)
+    public MerchantCategory updateMapping(UUID id, String category, UUID userId) {
+        MerchantCategory mc = merchantCategoryRepository.findByIdAndUserId(id, userId)
                 .orElseThrow(() -> new RuntimeException("Merchant mapping not found: " + id));
         mc.setCategory(category);
         merchantCategoryRepository.save(mc);
-        categoryCache.put(mc.getMerchantKey(), category);
+        String cacheKey = userId.toString() + ":" + mc.getMerchantKey();
+        categoryCache.put(cacheKey, category);
         log.info("Updated merchant mapping: '{}' → '{}'", mc.getMerchantKey(), category);
         return mc;
     }
 
-    public void deleteMapping(UUID id) {
-        MerchantCategory mc = merchantCategoryRepository.findById(id)
+    public void deleteMapping(UUID id, UUID userId) {
+        MerchantCategory mc = merchantCategoryRepository.findByIdAndUserId(id, userId)
                 .orElseThrow(() -> new RuntimeException("Merchant mapping not found: " + id));
         merchantCategoryRepository.delete(mc);
-        categoryCache.remove(mc.getMerchantKey());
+        String cacheKey = userId.toString() + ":" + mc.getMerchantKey();
+        categoryCache.remove(cacheKey);
         log.info("Deleted merchant mapping: '{}' (was '{}')", mc.getMerchantKey(), mc.getCategory());
     }
 }

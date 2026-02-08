@@ -3,9 +3,11 @@ package com.expensetracker.service;
 import com.expensetracker.config.ExpenseCategory;
 import com.expensetracker.dto.*;
 import com.expensetracker.entity.Expense;
+import com.expensetracker.entity.User;
 import com.expensetracker.exception.ExpenseNotFoundException;
 import com.expensetracker.exception.InvalidCategoryException;
 import com.expensetracker.repository.ExpenseRepository;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -28,22 +30,21 @@ public class ExpenseService {
 
     private final ExpenseRepository expenseRepository;
     private final CategorizationService categorizationService;
+    private final EntityManager entityManager;
 
     private static final String DEFAULT_CATEGORY = "Uncategorized";
 
     @Transactional
-    public ExpenseResponse createExpense(ExpenseRequest request) {
+    public ExpenseResponse createExpense(ExpenseRequest request, UUID userId) {
         String category;
 
         if (request.getCategory() != null && !request.getCategory().isBlank()) {
-            // Explicit category provided — validate it
             category = request.getCategory();
             validateCategory(category);
             log.info("Expense for merchant '{}' — using provided category: '{}'", request.getMerchant(), category);
         } else {
-            // No category — try AI categorization based on merchant name
             log.info("No category provided for merchant '{}', requesting AI categorization...", request.getMerchant());
-            String aiCategory = categorizationService.categorize(request.getMerchant());
+            String aiCategory = categorizationService.categorize(request.getMerchant(), userId);
             category = aiCategory != null ? aiCategory : DEFAULT_CATEGORY;
             log.info("Expense for merchant '{}' — final category: '{}' (source: {})",
                     request.getMerchant(), category, aiCategory != null ? "Claude AI" : "default fallback");
@@ -67,6 +68,8 @@ public class ExpenseService {
             paymentMethod = (cardName != null && !cardName.isBlank()) ? "Card" : "Cash";
         }
 
+        User userRef = entityManager.getReference(User.class, userId);
+
         Expense expense = Expense.builder()
                 .amount(request.getAmount())
                 .category(category)
@@ -75,6 +78,7 @@ public class ExpenseService {
                 .cardName(cardName)
                 .timestamp(request.getTimestamp() != null ? request.getTimestamp() : LocalDateTime.now())
                 .notes(notes)
+                .user(userRef)
                 .build();
 
         Expense saved = expenseRepository.save(expense);
@@ -82,7 +86,7 @@ public class ExpenseService {
     }
 
     @Transactional(readOnly = true)
-    public List<ExpenseResponse> getExpenses(LocalDate startDate, LocalDate endDate, String category) {
+    public List<ExpenseResponse> getExpenses(LocalDate startDate, LocalDate endDate, String category, UUID userId) {
         if (category != null && !category.isBlank()) {
             validateCategory(category);
         }
@@ -94,14 +98,14 @@ public class ExpenseService {
             LocalDateTime end = endDate.atTime(LocalTime.MAX);
 
             if (category != null && !category.isBlank()) {
-                expenses = expenseRepository.findByDateRangeAndCategory(start, end, category);
+                expenses = expenseRepository.findByUserIdAndDateRangeAndCategory(userId, start, end, category);
             } else {
-                expenses = expenseRepository.findByDateRange(start, end);
+                expenses = expenseRepository.findByUserIdAndDateRange(userId, start, end);
             }
         } else if (category != null && !category.isBlank()) {
-            expenses = expenseRepository.findByCategory(category);
+            expenses = expenseRepository.findByUserIdAndCategory(userId, category);
         } else {
-            expenses = expenseRepository.findAllByOrderByTimestampDesc();
+            expenses = expenseRepository.findAllByUserIdOrderByTimestampDesc(userId);
         }
 
         return expenses.stream()
@@ -110,8 +114,8 @@ public class ExpenseService {
     }
 
     @Transactional(readOnly = true)
-    public ExpenseSummary getSummary() {
-        List<Expense> allExpenses = expenseRepository.findAll();
+    public ExpenseSummary getSummary(UUID userId) {
+        List<Expense> allExpenses = expenseRepository.findAllByUserIdOrderByTimestampDesc(userId);
 
         if (allExpenses.isEmpty()) {
             return ExpenseSummary.builder()
@@ -157,12 +161,12 @@ public class ExpenseService {
     }
 
     @Transactional(readOnly = true)
-    public DashboardResponse getDashboard(LocalDate referenceDate) {
+    public DashboardResponse getDashboard(LocalDate referenceDate, UUID userId) {
         LocalDate ref = referenceDate != null ? referenceDate : LocalDate.now();
 
         // Today: single day
-        List<Expense> todayExpenses = expenseRepository.findByDateRange(
-                ref.atStartOfDay(), ref.atTime(LocalTime.MAX));
+        List<Expense> todayExpenses = expenseRepository.findByUserIdAndDateRange(
+                userId, ref.atStartOfDay(), ref.atTime(LocalTime.MAX));
 
         // Week: Monday → Sunday containing the reference date
         LocalDate weekStart = ref.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
@@ -176,12 +180,12 @@ public class ExpenseService {
         LocalDate yearStart = ref.withDayOfYear(1);
         LocalDate yearEnd = ref.withMonth(12).withDayOfMonth(31);
 
-        List<Expense> weekExpenses = expenseRepository.findByDateRange(
-                weekStart.atStartOfDay(), weekEnd.atTime(LocalTime.MAX));
-        List<Expense> monthExpenses = expenseRepository.findByDateRange(
-                monthStart.atStartOfDay(), monthEnd.atTime(LocalTime.MAX));
-        List<Expense> yearExpenses = expenseRepository.findByDateRange(
-                yearStart.atStartOfDay(), yearEnd.atTime(LocalTime.MAX));
+        List<Expense> weekExpenses = expenseRepository.findByUserIdAndDateRange(
+                userId, weekStart.atStartOfDay(), weekEnd.atTime(LocalTime.MAX));
+        List<Expense> monthExpenses = expenseRepository.findByUserIdAndDateRange(
+                userId, monthStart.atStartOfDay(), monthEnd.atTime(LocalTime.MAX));
+        List<Expense> yearExpenses = expenseRepository.findByUserIdAndDateRange(
+                userId, yearStart.atStartOfDay(), yearEnd.atTime(LocalTime.MAX));
 
         return DashboardResponse.builder()
                 .today(buildPeriodSummary(todayExpenses, ref, ref))
@@ -193,7 +197,6 @@ public class ExpenseService {
 
     private DashboardResponse.PeriodSummary buildPeriodSummary(List<Expense> expenses, LocalDate start, LocalDate end) {
         if (expenses.isEmpty()) {
-            // Fill daily spending with zeros for each day in the period
             List<DashboardResponse.DailySpending> emptyDays = new ArrayList<>();
             for (LocalDate d = start; !d.isAfter(end); d = d.plusDays(1)) {
                 emptyDays.add(DashboardResponse.DailySpending.builder()
@@ -211,14 +214,12 @@ public class ExpenseService {
                     .build();
         }
 
-        // Total + count + average
         BigDecimal totalSpent = expenses.stream()
                 .map(Expense::getAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         long count = expenses.size();
         BigDecimal avg = totalSpent.divide(BigDecimal.valueOf(count), 2, RoundingMode.HALF_UP);
 
-        // Category breakdown
         Map<String, List<Expense>> byCategory = expenses.stream()
                 .collect(Collectors.groupingBy(Expense::getCategory));
         Map<String, DashboardResponse.CategoryBreakdown> categoryBreakdown = new LinkedHashMap<>();
@@ -243,7 +244,6 @@ public class ExpenseService {
             }
         }
 
-        // Top 5 merchants
         Map<String, List<Expense>> byMerchant = expenses.stream()
                 .collect(Collectors.groupingBy(Expense::getMerchant));
         List<DashboardResponse.MerchantSummary> topMerchants = byMerchant.entrySet().stream()
@@ -261,7 +261,6 @@ public class ExpenseService {
                 .limit(5)
                 .collect(Collectors.toList());
 
-        // Daily spending (fill zero-days)
         Map<LocalDate, List<Expense>> byDate = expenses.stream()
                 .collect(Collectors.groupingBy(e -> e.getTimestamp().toLocalDate()));
         List<DashboardResponse.DailySpending> dailySpending = new ArrayList<>();
@@ -290,15 +289,15 @@ public class ExpenseService {
     }
 
     @Transactional(readOnly = true)
-    public ExpenseResponse getExpenseById(UUID id) {
-        Expense expense = expenseRepository.findById(id)
+    public ExpenseResponse getExpenseById(UUID id, UUID userId) {
+        Expense expense = expenseRepository.findByIdAndUserId(id, userId)
                 .orElseThrow(() -> new ExpenseNotFoundException(id));
         return ExpenseResponse.fromEntity(expense);
     }
 
     @Transactional
-    public ExpenseResponse updateExpense(UUID id, ExpenseRequest request) {
-        Expense expense = expenseRepository.findById(id)
+    public ExpenseResponse updateExpense(UUID id, ExpenseRequest request, UUID userId) {
+        Expense expense = expenseRepository.findByIdAndUserId(id, userId)
                 .orElseThrow(() -> new ExpenseNotFoundException(id));
 
         // Determine category
@@ -308,18 +307,16 @@ public class ExpenseService {
             validateCategory(category);
         } else {
             String merchant = request.getMerchant() != null ? request.getMerchant() : expense.getMerchant();
-            String aiCategory = categorizationService.categorize(merchant);
+            String aiCategory = categorizationService.categorize(merchant, userId);
             category = aiCategory != null ? aiCategory : DEFAULT_CATEGORY;
         }
 
-        // Update fields
         expense.setAmount(request.getAmount());
         expense.setCategory(category);
         if (request.getMerchant() != null) {
             expense.setMerchant(request.getMerchant());
         }
 
-        // Payment method
         if (request.getPaymentMethod() != null && !request.getPaymentMethod().isBlank()) {
             expense.setPaymentMethod(request.getPaymentMethod());
         }
@@ -346,8 +343,8 @@ public class ExpenseService {
     }
 
     @Transactional
-    public ExpenseResponse deleteExpense(UUID id) {
-        Expense expense = expenseRepository.findById(id)
+    public ExpenseResponse deleteExpense(UUID id, UUID userId) {
+        Expense expense = expenseRepository.findByIdAndUserId(id, userId)
                 .orElseThrow(() -> new ExpenseNotFoundException(id));
         expenseRepository.delete(expense);
         log.info("Deleted expense {}: merchant='{}', amount={}", id, expense.getMerchant(), expense.getAmount());

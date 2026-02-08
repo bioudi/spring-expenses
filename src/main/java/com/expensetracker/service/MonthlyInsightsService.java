@@ -5,6 +5,8 @@ import com.expensetracker.dto.DashboardResponse.CategoryBreakdown;
 import com.expensetracker.dto.DashboardResponse.DailySpending;
 import com.expensetracker.dto.DashboardResponse.MerchantSummary;
 import com.expensetracker.dto.DashboardResponse.PeriodSummary;
+import com.expensetracker.entity.User;
+import com.expensetracker.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,12 +28,10 @@ public class MonthlyInsightsService {
 
     private final ExpenseService expenseService;
     private final EmailService emailService;
+    private final UserRepository userRepository;
 
     @Value("${insights.email.enabled:true}")
     private boolean emailEnabled;
-
-    @Value("${insights.email.recipients:}")
-    private String[] recipients;
 
     @Scheduled(cron = "0 0 9 L * ?")
     public void sendMonthlyInsights() {
@@ -40,34 +40,43 @@ public class MonthlyInsightsService {
             return;
         }
 
-        if (recipients == null || recipients.length == 0 || recipients[0].isBlank()) {
-            log.warn("No recipients configured for monthly insights email. Skipping.");
+        log.info("Starting monthly insights email generation...");
+
+        List<User> users = userRepository.findAll();
+        if (users.isEmpty()) {
+            log.warn("No users found. Skipping monthly insights.");
             return;
         }
 
-        log.info("Starting monthly insights email generation...");
+        LocalDate today = LocalDate.now();
+        String monthName = today.format(DateTimeFormatter.ofPattern("MMMM yyyy"));
 
-        try {
-            LocalDate today = LocalDate.now();
-            String monthName = today.format(DateTimeFormatter.ofPattern("MMMM yyyy"));
+        for (User user : users) {
+            try {
+                // Get current month's data for this user
+                DashboardResponse dashboard = expenseService.getDashboard(today, user.getId());
+                PeriodSummary currentMonth = dashboard.getMonth();
 
-            // Get current month's data
-            DashboardResponse dashboard = expenseService.getDashboard(today);
-            PeriodSummary currentMonth = dashboard.getMonth();
+                // Skip users with no transactions this month
+                if (currentMonth.getTransactionCount() == 0) {
+                    log.info("Skipping monthly insights for user '{}' — no transactions this month", user.getEmail());
+                    continue;
+                }
 
-            // Get previous month's data for comparison
-            LocalDate previousMonthDate = today.minusMonths(1);
-            DashboardResponse previousDashboard = expenseService.getDashboard(previousMonthDate);
-            PeriodSummary previousMonth = previousDashboard.getMonth();
+                // Get previous month's data for comparison
+                LocalDate previousMonthDate = today.minusMonths(1);
+                DashboardResponse previousDashboard = expenseService.getDashboard(previousMonthDate, user.getId());
+                PeriodSummary previousMonth = previousDashboard.getMonth();
 
-            String subject = "Your Expense Insights \u2014 " + monthName;
-            String htmlBody = buildEmailHtml(currentMonth, previousMonth, monthName);
+                String subject = "Your Expense Insights \u2014 " + monthName;
+                String htmlBody = buildEmailHtml(currentMonth, previousMonth, monthName);
 
-            emailService.sendHtmlEmail(recipients, subject, htmlBody);
-            log.info("Monthly insights email sent successfully for {}", monthName);
+                emailService.sendHtmlEmail(new String[]{user.getEmail()}, subject, htmlBody);
+                log.info("Monthly insights email sent successfully for user '{}' ({})", user.getEmail(), monthName);
 
-        } catch (Exception e) {
-            log.error("Failed to send monthly insights email: {}", e.getMessage(), e);
+            } catch (Exception e) {
+                log.error("Failed to send monthly insights email for user '{}': {}", user.getEmail(), e.getMessage(), e);
+            }
         }
     }
 

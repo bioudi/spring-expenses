@@ -1,24 +1,32 @@
 package com.expensetracker.config;
 
+import com.expensetracker.entity.User;
+import com.expensetracker.repository.UserRepository;
+import com.expensetracker.security.UserPrincipal;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Value;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Optional;
 
 @Component
+@RequiredArgsConstructor
 public class ApiKeyFilter extends OncePerRequestFilter {
 
     private static final String API_KEY_HEADER = "X-API-Key";
 
-    @Value("${api.key}")
-    private String apiKey;
+    private final UserRepository userRepository;
 
     @Override
     protected void doFilterInternal(
@@ -38,10 +46,24 @@ public class ApiKeyFilter extends OncePerRequestFilter {
                 return;
             }
 
-            if (!apiKey.equals(providedApiKey)) {
+            // Look up user by API key
+            Optional<User> userOpt = userRepository.findByApiKey(providedApiKey);
+            if (userOpt.isEmpty()) {
                 sendErrorResponse(response, HttpStatus.FORBIDDEN, "Invalid API key");
                 return;
             }
+
+            // Set SecurityContext so controllers can use SecurityUtils.getCurrentUserId()
+            User user = userOpt.get();
+            UserPrincipal principal = new UserPrincipal(
+                    user.getId(),
+                    user.getEmail(),
+                    user.getPassword(),
+                    List.of(new SimpleGrantedAuthority("ROLE_USER"))
+            );
+            UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
+            SecurityContextHolder.getContext().setAuthentication(authentication);
         }
 
         filterChain.doFilter(request, response);

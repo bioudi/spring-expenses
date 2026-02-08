@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Expense Tracker</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f1117;
+            color: #e1e4e8;
+            min-height: 100vh;
+        }
+
+        /* Navigation */
+        .nav {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            padding: 16px 24px;
+            background: #1c1f26;
+            border-bottom: 1px solid #2d333b;
+            flex-wrap: wrap;
+        }
+
+        .nav-brand {
+            font-size: 20px;
+            font-weight: 700;
+            color: #ffffff;
+            text-decoration: none;
+        }
+
+        .nav-brand span { color: #58a6ff; }
+
+        .nav-links { display: flex; gap: 4px; }
+
+        .nav-link {
+            padding: 8px 16px;
+            border-radius: 6px;
+            color: #8b949e;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .nav-link:hover { background: #252830; color: #e1e4e8; }
+        .nav-link.active { background: #58a6ff; color: #ffffff; }
+
+        .nav-right { margin-left: auto; }
+
+        .logout-btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            background: transparent;
+            border: 1px solid #2d333b;
+            color: #8b949e;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .logout-btn:hover { background: #da3633; color: #ffffff; border-color: #da3633; }
+
+        /* Content */
+        .container {
+            max-width: 700px;
+            margin: 32px auto;
+            padding: 0 24px;
+        }
+
+        .page-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 24px;
+        }
+
+        .settings-card {
+            background: #1c1f26;
+            border: 1px solid #2d333b;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .settings-card h2 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #e1e4e8;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #2d333b;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #21262d;
+        }
+
+        .info-row:last-child { border-bottom: none; }
+
+        .info-label {
+            font-size: 13px;
+            color: #8b949e;
+            font-weight: 500;
+        }
+
+        .info-value {
+            font-size: 14px;
+            color: #e1e4e8;
+        }
+
+        .api-key-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .api-key-value {
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 13px;
+            color: #e1e4e8;
+            background: #0f1117;
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid #2d333b;
+            word-break: break-all;
+            flex: 1;
+        }
+
+        .btn-copy, .btn-regenerate {
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid #2d333b;
+            background: #252830;
+            color: #8b949e;
+            white-space: nowrap;
+        }
+
+        .btn-copy:hover { background: #2d333b; color: #e1e4e8; }
+
+        .btn-regenerate {
+            border-color: #da3633;
+            color: #ff7b72;
+            background: transparent;
+        }
+
+        .btn-regenerate:hover { background: rgba(218, 54, 51, 0.15); }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            color: #8b949e;
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #2d333b;
+            border-radius: 8px;
+            background: #0f1117;
+            color: #e1e4e8;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #58a6ff;
+        }
+
+        .btn-save {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            background: #58a6ff;
+            color: #ffffff;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-save:hover { background: #4a90e2; }
+        .btn-save:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .alert {
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-bottom: 16px;
+        }
+
+        .alert-success {
+            background: rgba(35, 134, 54, 0.15);
+            border: 1px solid #238636;
+            color: #7ee787;
+        }
+
+        .alert-error {
+            background: rgba(218, 54, 51, 0.15);
+            border: 1px solid #da3633;
+            color: #ff7b72;
+        }
+
+        .copied-toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #238636;
+            color: #ffffff;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 1000;
+        }
+
+        .copied-toast.show { opacity: 1; }
+
+        @media (max-width: 600px) {
+            .container { padding: 0 16px; margin: 16px auto; }
+            .nav { padding: 12px 16px; gap: 12px; }
+            .nav-right { order: 2; }
+            .logout-btn { padding: 6px 12px; font-size: 12px; }
+            .info-row { flex-direction: column; align-items: flex-start; gap: 8px; }
+            .api-key-container { flex-direction: column; width: 100%; }
+            .api-key-value { width: 100%; }
+            .api-key-actions { display: flex; gap: 8px; width: 100%; }
+            .api-key-actions button { flex: 1; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <a href="/" class="nav-brand"><span>$</span> Expense Tracker</a>
+        <div class="nav-links">
+            <a href="/" class="nav-link">Dashboard</a>
+            <a href="/expenses.html" class="nav-link">Expenses</a>
+            <a href="/merchants.html" class="nav-link">Merchants</a>
+            <a href="/settings.html" class="nav-link active">Settings</a>
+        </div>
+        <div class="nav-right">
+            <form action="/logout" method="POST" style="display:inline;">
+                <button type="submit" class="logout-btn">Logout</button>
+            </form>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1 class="page-title">Settings</h1>
+
+        <!-- Profile Info -->
+        <div class="settings-card">
+            <h2>Profile</h2>
+            <div class="info-row">
+                <span class="info-label">Email</span>
+                <span class="info-value" id="profileEmail">Loading...</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Display Name</span>
+                <span class="info-value" id="profileName">Loading...</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Member Since</span>
+                <span class="info-value" id="profileCreated">Loading...</span>
+            </div>
+        </div>
+
+        <!-- API Key -->
+        <div class="settings-card">
+            <h2>API Key</h2>
+            <p style="font-size: 13px; color: #8b949e; margin-bottom: 16px;">
+                Use this key in the <code style="background: #0f1117; padding: 2px 6px; border-radius: 4px; font-size: 12px;">X-API-Key</code> header for webhook requests.
+            </p>
+            <div class="api-key-container">
+                <div class="api-key-value" id="apiKeyDisplay">Loading...</div>
+                <div class="api-key-actions">
+                    <button class="btn-copy" onclick="copyApiKey()">Copy</button>
+                    <button class="btn-regenerate" onclick="regenerateApiKey()">Regenerate</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Change Password -->
+        <div class="settings-card">
+            <h2>Change Password</h2>
+            <div id="passwordAlert" class="alert" style="display: none;"></div>
+            <form id="passwordForm" onsubmit="changePassword(event)">
+                <div class="form-group">
+                    <label for="currentPassword">Current Password</label>
+                    <input type="password" id="currentPassword" required>
+                </div>
+                <div class="form-group">
+                    <label for="newPassword">New Password</label>
+                    <input type="password" id="newPassword" required minlength="8">
+                </div>
+                <div class="form-group">
+                    <label for="confirmNewPassword">Confirm New Password</label>
+                    <input type="password" id="confirmNewPassword" required>
+                </div>
+                <button type="submit" class="btn-save">Update Password</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="copied-toast" id="copiedToast">Copied to clipboard!</div>
+
+    <script>
+        // Load profile on page load
+        document.addEventListener('DOMContentLoaded', loadProfile);
+
+        async function loadProfile() {
+            try {
+                const response = await fetch('/api/user/profile', {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+
+                if (response.status === 401) {
+                    window.location.href = '/login.html';
+                    return;
+                }
+
+                const profile = await response.json();
+                document.getElementById('profileEmail').textContent = profile.email;
+                document.getElementById('profileName').textContent = profile.displayName || 'Not set';
+                document.getElementById('profileCreated').textContent = new Date(profile.createdAt).toLocaleDateString('en-US', {
+                    year: 'numeric', month: 'long', day: 'numeric'
+                });
+                document.getElementById('apiKeyDisplay').textContent = profile.apiKey;
+            } catch (err) {
+                console.error('Failed to load profile:', err);
+            }
+        }
+
+        function copyApiKey() {
+            const apiKey = document.getElementById('apiKeyDisplay').textContent;
+            navigator.clipboard.writeText(apiKey).then(() => {
+                const toast = document.getElementById('copiedToast');
+                toast.classList.add('show');
+                setTimeout(() => toast.classList.remove('show'), 2000);
+            });
+        }
+
+        async function regenerateApiKey() {
+            if (!confirm('Are you sure? Any existing integrations using the current API key will stop working.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/user/regenerate-api-key', {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('apiKeyDisplay').textContent = data.apiKey;
+                    const toast = document.getElementById('copiedToast');
+                    toast.textContent = 'API key regenerated!';
+                    toast.classList.add('show');
+                    setTimeout(() => {
+                        toast.classList.remove('show');
+                        toast.textContent = 'Copied to clipboard!';
+                    }, 2000);
+                }
+            } catch (err) {
+                alert('Failed to regenerate API key');
+            }
+        }
+
+        async function changePassword(e) {
+            e.preventDefault();
+
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmNewPassword = document.getElementById('confirmNewPassword').value;
+            const alertEl = document.getElementById('passwordAlert');
+
+            alertEl.style.display = 'none';
+
+            if (newPassword !== confirmNewPassword) {
+                alertEl.className = 'alert alert-error';
+                alertEl.textContent = 'New passwords do not match';
+                alertEl.style.display = 'block';
+                return;
+            }
+
+            if (newPassword.length < 8) {
+                alertEl.className = 'alert alert-error';
+                alertEl.textContent = 'Password must be at least 8 characters';
+                alertEl.style.display = 'block';
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/user/password', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({ currentPassword, newPassword })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alertEl.className = 'alert alert-success';
+                    alertEl.textContent = 'Password updated successfully';
+                    alertEl.style.display = 'block';
+                    document.getElementById('passwordForm').reset();
+                } else {
+                    alertEl.className = 'alert alert-error';
+                    alertEl.textContent = data.error || 'Failed to update password';
+                    alertEl.style.display = 'block';
+                }
+            } catch (err) {
+                alertEl.className = 'alert alert-error';
+                alertEl.textContent = 'Network error. Please try again.';
+                alertEl.style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>

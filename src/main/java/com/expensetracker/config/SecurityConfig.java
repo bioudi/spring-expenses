@@ -1,40 +1,31 @@
 package com.expensetracker.config;
 
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
-    @Value("${dashboard.username:admin}")
-    private String username;
-
-    @Value("${dashboard.password:admin}")
-    private String password;
-
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
-                        // Webhook uses its own API key auth — let it through Spring Security
                         .requestMatchers("/api/webhook/**").permitAll()
-                        // Login page is public
                         .requestMatchers("/login.html", "/login").permitAll()
-                        // Everything else requires authentication
+                        .requestMatchers("/register.html", "/api/auth/register").permitAll()
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
                         .loginPage("/login.html")
                         .loginProcessingUrl("/login")
+                        .usernameParameter("email")
                         .defaultSuccessUrl("/", true)
                         .failureUrl("/login.html?error=true")
                         .permitAll()
@@ -47,14 +38,12 @@ public class SecurityConfig {
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((request, response, authException) -> {
                             String accept = request.getHeader("Accept");
-                            // API/XHR requests get plain 401 JSON (no redirect, no popup)
                             if ("XMLHttpRequest".equals(request.getHeader("X-Requested-With"))
                                     || (accept != null && accept.contains("application/json"))) {
                                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                                 response.setContentType("application/json");
                                 response.getWriter().write("{\"error\":\"Unauthorized\"}");
                             } else {
-                                // Everything else (browser) redirects to login page
                                 response.sendRedirect("/login.html");
                             }
                         })
@@ -67,13 +56,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    public UserDetailsService userDetailsService() {
-        var user = User.builder()
-                .username(username)
-                .password("{noop}" + password)
-                .roles("ADMIN")
-                .build();
-
-        return new InMemoryUserDetailsManager(user);
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 }

@@ -1,6 +1,5 @@
 package com.expensetracker.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -8,30 +7,29 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "merchant_categories", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"user_id", "merchant_key"})
-})
+@Table(name = "users")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class MerchantCategory {
+public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "merchant_key", nullable = false)
-    private String merchantKey;
+    @Column(nullable = false, unique = true)
+    private String email;
 
     @Column(nullable = false)
-    private String category;
+    private String password;
 
-    @JsonIgnore
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
-    private User user;
+    @Column(name = "display_name")
+    private String displayName;
+
+    @Column(name = "api_key", nullable = false, unique = true)
+    private String apiKey;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -39,5 +37,8 @@ public class MerchantCategory {
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
+        if (apiKey == null) {
+            apiKey = UUID.randomUUID().toString();
+        }
     }
 }

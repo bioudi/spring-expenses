@@ -112,6 +112,23 @@
             border: 1px solid #238636;
             color: #7ee787;
         }
+
+        .signup-link {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #8b949e;
+        }
+
+        .signup-link a {
+            color: #58a6ff;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .signup-link a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -122,24 +139,32 @@
         </div>
 
         <div id="errorAlert" class="alert alert-error" style="display: none;">
-            Invalid username or password
+            Invalid email or password
         </div>
 
         <div id="logoutAlert" class="alert alert-success" style="display: none;">
             You have been logged out
         </div>
 
+        <div id="registeredAlert" class="alert alert-success" style="display: none;">
+            Account created successfully! Please sign in.
+        </div>
+
         <form action="/login" method="POST">
             <div class="form-group">
-                <label for="username">Username</label>
-                <input type="text" id="username" name="username" required autofocus placeholder="Enter username">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" required autofocus placeholder="Enter your email">
             </div>
             <div class="form-group">
                 <label for="password">Password</label>
-                <input type="password" id="password" name="password" required placeholder="Enter password">
+                <input type="password" id="password" name="password" required placeholder="Enter your password">
             </div>
             <button type="submit" class="btn-login">Sign In</button>
         </form>
+
+        <div class="signup-link">
+            Don't have an account? <a href="/register.html">Sign up</a>
+        </div>
     </div>
 
     <script>
@@ -149,6 +174,9 @@
         }
         if (params.get('logout') === 'true') {
             document.getElementById('logoutAlert').style.display = 'block';
+        }
+        if (params.get('registered') === 'true') {
+            document.getElementById('registeredAlert').style.display = 'block';
         }
     </script>
 </body>
