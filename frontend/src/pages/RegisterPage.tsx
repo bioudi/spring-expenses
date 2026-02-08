@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import { DollarSign } from 'lucide-react'
+import { Wallet } from 'lucide-react'
 import { api } from '@/lib/api'
 
 export default function RegisterPage() {
@@ -128,9 +128,9 @@ export default function RegisterPage() {
             <div className="bg-muted relative hidden md:flex md:flex-col md:items-center md:justify-center">
               <div className="flex flex-col items-center gap-4">
                 <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
-                  <DollarSign className="h-8 w-8" />
+                  <Wallet className="h-8 w-8" />
                 </div>
-                <span className="text-lg font-semibold">Expense Tracker</span>
+                <span className="text-lg font-semibold">Spendifi</span>
               </div>
             </div>
           </CardContent>

@@ -200,7 +200,7 @@ public class MonthlyInsightsService {
 
         // Footer
         html.append("<div style='background-color:#0f1117;padding:20px;text-align:center;'>");
-        html.append("<p style='color:#484f58;margin:0;font-size:12px;'>Expense Tracker \u2014 Automated Monthly Report</p>");
+        html.append("<p style='color:#484f58;margin:0;font-size:12px;'>Spendifi \u2014 Automated Monthly Report</p>");
         html.append("</div>");
 
         html.append("</div>"); // end container

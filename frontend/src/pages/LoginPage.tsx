@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import { DollarSign } from 'lucide-react'
+import { Wallet } from 'lucide-react'
 
 export default function LoginPage() {
   const [searchParams] = useSearchParams()
@@ -20,11 +20,11 @@ export default function LoginPage() {
               <div className="flex flex-col gap-6">
                 <div className="flex flex-col items-center text-center">
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground mb-2">
-                    <DollarSign className="h-5 w-5" />
+                    <Wallet className="h-5 w-5" />
                   </div>
                   <h1 className="text-2xl font-bold">Welcome back</h1>
                   <p className="text-muted-foreground text-balance">
-                    Sign in to your Expenses Tracker account
+                    Sign in to your Spendifi account
                   </p>
                 </div>
 
@@ -88,11 +88,11 @@ export default function LoginPage() {
             <div className="bg-muted relative hidden md:flex md:flex-col md:items-center md:justify-center">
               <div className="flex flex-col items-center gap-4 p-8 text-center">
                 <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
-                  <DollarSign className="h-8 w-8" />
+                  <Wallet className="h-8 w-8" />
                 </div>
                 <div className="space-y-2">
                   <h2 className="text-xl font-semibold tracking-tight">
-                    Expenses Tracker
+                    Spendifi
                   </h2>
                   <p className="text-sm text-muted-foreground text-balance">
                     Track your spending, manage merchants, and gain insights into

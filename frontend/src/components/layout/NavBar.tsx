@@ -1,6 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, Receipt, Store, Settings, LogOut, DollarSign, Moon, Sun, Menu, X } from 'lucide-react'
+import { LayoutDashboard, Receipt, Store, Settings, LogOut, Wallet, Moon, Sun, Menu, X } from 'lucide-react'
 import { useTheme } from '@/components/theme-provider'
 import { Button } from '@/components/ui/button'
 import { useState, useEffect } from 'react'
@@ -55,10 +55,10 @@ export default function NavBar() {
       {/* Brand */}
       <div className="flex h-14 items-center gap-2 border-b px-4">
         <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
-          <DollarSign className="h-3.5 w-3.5" />
+          <Wallet className="h-3.5 w-3.5" />
         </div>
         <span className="text-sm font-semibold tracking-tight text-sidebar-foreground">
-          Expense Tracker
+          Spendifi
         </span>
       </div>
 
@@ -119,10 +119,10 @@ export default function NavBar() {
         </Button>
         <div className="flex items-center gap-2">
           <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <DollarSign className="h-3.5 w-3.5" />
+            <Wallet className="h-3.5 w-3.5" />
           </div>
           <span className="text-sm font-semibold tracking-tight text-sidebar-foreground">
-            Expense Tracker
+            Spendifi
           </span>
         </div>
       </div>
