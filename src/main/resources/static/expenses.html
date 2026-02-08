@@ -22,6 +22,7 @@
             padding: 16px 24px;
             background: #1c1f26;
             border-bottom: 1px solid #2d333b;
+            flex-wrap: wrap;
         }
 
         .nav-brand {
@@ -309,13 +310,97 @@
 
         .confirm-text strong { color: #ff7b72; }
 
+        /* Mobile-friendly card layout for expenses */
+        .expense-cards { display: none; }
+
+        .expense-card {
+            background: #1c1f26;
+            border: 1px solid #2d333b;
+            border-radius: 10px;
+            padding: 14px 16px;
+            margin-bottom: 10px;
+        }
+
+        .expense-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
+        .expense-card-merchant {
+            font-weight: 600;
+            font-size: 15px;
+            color: #ffffff;
+        }
+
+        .expense-card-amount {
+            font-weight: 700;
+            font-size: 16px;
+            color: #58a6ff;
+        }
+
+        .expense-card-details {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 12px;
+            color: #8b949e;
+        }
+
+        .expense-card-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            padding-top: 8px;
+            border-top: 1px solid #2d333b;
+        }
+
         @media (max-width: 768px) {
+            .nav {
+                gap: 12px;
+                padding: 12px 16px;
+            }
+
+            .nav-brand { font-size: 16px; }
+
+            .nav-links { order: 3; width: 100%; gap: 2px; }
+
+            .nav-link {
+                padding: 6px 10px;
+                font-size: 13px;
+                flex: 1;
+                text-align: center;
+            }
+
+            .nav-right { order: 2; }
+            .logout-btn { padding: 6px 12px; font-size: 12px; }
+
             .container { padding: 16px; }
-            .page-header { flex-direction: column; gap: 12px; align-items: flex-start; }
+
+            .page-header {
+                flex-direction: column;
+                gap: 12px;
+                align-items: stretch;
+            }
+
+            .page-header h2 { font-size: 20px; }
+
+            .btn-primary { width: 100%; text-align: center; }
+
             .form-row { grid-template-columns: 1fr; }
-            .actions-cell { flex-direction: column; }
-            table { font-size: 13px; }
-            thead th, tbody td { padding: 10px 12px; }
+
+            .modal { width: 95vw; }
+
+            /* Hide table, show cards */
+            .table-card { display: none; }
+            .expense-cards { display: block; }
+        }
+
+        @media (max-width: 380px) {
+            .nav-link { padding: 6px 6px; font-size: 12px; }
         }
     </style>
 </head>
@@ -362,6 +447,9 @@
                 </tbody>
             </table>
         </div>
+
+        <!-- Mobile card layout -->
+        <div class="expense-cards" id="expenseCards"></div>
     </div>
 
     <!-- Add/Edit Modal -->
@@ -556,6 +644,7 @@
 
         function renderTable(expenses) {
             const tbody = document.getElementById('expenseTableBody');
+            const cards = document.getElementById('expenseCards');
 
             if (!expenses || expenses.length === 0) {
                 tbody.innerHTML = `
@@ -563,9 +652,11 @@
                         <h3>No expenses yet</h3>
                         <p>Click "Add Expense" to get started</p>
                     </td></tr>`;
+                cards.innerHTML = `<div class="empty-state"><h3>No expenses yet</h3><p>Click "Add Expense" to get started</p></div>`;
                 return;
             }
 
+            // Desktop table
             tbody.innerHTML = expenses.map(exp => {
                 const date = new Date(exp.timestamp);
                 const dateStr = date.toLocaleDateString('en-CA', { year: 'numeric', month: 'short', day: 'numeric' });
@@ -587,6 +678,32 @@
                             </div>
                         </td>
                     </tr>`;
+            }).join('');
+
+            // Mobile cards
+            cards.innerHTML = expenses.map(exp => {
+                const date = new Date(exp.timestamp);
+                const dateStr = date.toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' });
+                const timeStr = date.toLocaleTimeString('en-CA', { hour: '2-digit', minute: '2-digit' });
+                const color = CATEGORY_COLORS[exp.category] || '#484f58';
+
+                return `
+                    <div class="expense-card">
+                        <div class="expense-card-header">
+                            <span class="expense-card-merchant">${escapeHtml(exp.merchant)}</span>
+                            <span class="expense-card-amount">$${parseFloat(exp.amount).toFixed(2)}</span>
+                        </div>
+                        <div class="expense-card-details">
+                            <span>${dateStr} ${timeStr}</span>
+                            <span class="category-badge" style="color:${color};border:1px solid ${color}33">${escapeHtml(exp.category)}</span>
+                            <span>${escapeHtml(exp.paymentMethod || 'Card')}${exp.cardName ? ' · ' + escapeHtml(exp.cardName) : ''}</span>
+                        </div>
+                        ${exp.notes ? '<div style="font-size:12px;color:#8b949e;margin-bottom:8px">' + escapeHtml(exp.notes) + '</div>' : ''}
+                        <div class="expense-card-actions">
+                            <button class="btn btn-secondary btn-sm" onclick='openEditModal(${JSON.stringify(exp)})'>Edit</button>
+                            <button class="btn btn-danger btn-sm" onclick='openDeleteModal("${exp.id}", "${escapeHtml(exp.merchant)}", ${parseFloat(exp.amount).toFixed(2)})'>Delete</button>
+                        </div>
+                    </div>`;
             }).join('');
         }
 

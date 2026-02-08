@@ -44,19 +44,18 @@ public class SecurityConfig {
                         .logoutSuccessUrl("/login.html?logout=true")
                         .permitAll()
                 )
-                .httpBasic(basic -> basic
+                .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((request, response, authException) -> {
-                            // If the request comes from a browser (fetch/XHR), return 401 without
-                            // WWW-Authenticate header to avoid the native browser login popup
+                            String accept = request.getHeader("Accept");
+                            // API/XHR requests get plain 401 JSON (no redirect, no popup)
                             if ("XMLHttpRequest".equals(request.getHeader("X-Requested-With"))
-                                    || (request.getHeader("Accept") != null && request.getHeader("Accept").contains("application/json"))) {
+                                    || (accept != null && accept.contains("application/json"))) {
                                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                                 response.setContentType("application/json");
                                 response.getWriter().write("{\"error\":\"Unauthorized\"}");
                             } else {
-                                // For non-browser clients (curl, Postman), send standard Basic challenge
-                                response.setHeader("WWW-Authenticate", "Basic realm=\"Expense Tracker\"");
-                                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                                // Everything else (browser) redirects to login page
+                                response.sendRedirect("/login.html");
                             }
                         })
                 )

@@ -23,6 +23,7 @@
             background: #1c1f26;
             border-bottom: 1px solid #2d333b;
             margin-bottom: 0;
+            flex-wrap: wrap;
         }
 
         .nav-brand {
@@ -325,12 +326,98 @@
         }
 
         @media (max-width: 768px) {
-            body { padding: 16px; }
-            .charts-grid { grid-template-columns: 1fr; }
-            .header { flex-direction: column; gap: 16px; align-items: flex-start; }
-            .header-controls { flex-direction: column; gap: 12px; align-items: flex-start; }
-            .stat-card .value { font-size: 24px; }
-            .period-nav-label { min-width: 140px; font-size: 13px; }
+            .nav {
+                gap: 12px;
+                padding: 12px 16px;
+            }
+
+            .nav-brand { font-size: 16px; }
+
+            .nav-links { order: 3; width: 100%; gap: 2px; }
+
+            .nav-link {
+                padding: 6px 10px;
+                font-size: 13px;
+                flex: 1;
+                text-align: center;
+            }
+
+            .nav-right { order: 2; }
+
+            .logout-btn { padding: 6px 12px; font-size: 12px; }
+
+            .main-content { padding: 16px; }
+
+            .header {
+                flex-direction: column;
+                gap: 12px;
+                align-items: stretch;
+                margin-bottom: 20px;
+            }
+
+            .header h1 { font-size: 22px; }
+
+            .header-controls {
+                flex-direction: column;
+                gap: 10px;
+                align-items: stretch;
+            }
+
+            .period-nav { justify-content: center; }
+            .period-nav-label { min-width: 120px; font-size: 13px; }
+            .period-nav-btn { width: 32px; height: 32px; font-size: 16px; }
+
+            .toggle-group { width: 100%; }
+
+            .toggle-btn {
+                flex: 1;
+                padding: 8px 6px;
+                font-size: 13px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+                margin-bottom: 16px;
+            }
+
+            .stat-card {
+                padding: 16px;
+                border-radius: 10px;
+            }
+
+            .stat-card .label { font-size: 11px; margin-bottom: 4px; }
+            .stat-card .value { font-size: 22px; }
+            .stat-card .period-label { font-size: 10px; }
+
+            .charts-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
+                margin-bottom: 16px;
+            }
+
+            .chart-card {
+                padding: 16px;
+                border-radius: 10px;
+            }
+
+            .chart-card h3 { font-size: 14px; margin-bottom: 12px; }
+            .chart-container { height: 220px; }
+
+            .category-table th { padding: 8px 8px; font-size: 11px; }
+            .category-table td { padding: 10px 8px; font-size: 12px; }
+
+            .merchant-list li { padding: 8px 0; }
+            .merchant-rank { width: 20px; height: 20px; font-size: 11px; margin-right: 8px; }
+            .merchant-name { font-size: 13px; }
+            .merchant-amount { font-size: 13px; }
+            .merchant-count { font-size: 11px; }
+        }
+
+        @media (max-width: 380px) {
+            .stats-grid { grid-template-columns: 1fr; }
+            .stat-card .value { font-size: 26px; }
+            .toggle-btn { font-size: 12px; padding: 7px 4px; }
         }
     </style>
 </head>
@@ -596,8 +683,8 @@
                     maintainAspectRatio: false,
                     plugins: {
                         legend: {
-                            position: 'right',
-                            labels: { color: '#8b949e', padding: 12, font: { size: 12 } }
+                            position: window.innerWidth <= 768 ? 'bottom' : 'right',
+                            labels: { color: '#8b949e', padding: window.innerWidth <= 768 ? 8 : 12, font: { size: window.innerWidth <= 768 ? 11 : 12 } }
                         }
                     },
                     cutout: '65%'
