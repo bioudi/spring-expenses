@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Plus, Pencil, Trash2, X } from 'lucide-react'
+import { Plus, Pencil, Trash2 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -22,7 +22,6 @@ export default function ExpensesPage() {
   const [deleteTarget, setDeleteTarget] = useState<ExpenseResponse | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // Form state
   const [amount, setAmount] = useState('')
   const [merchant, setMerchant] = useState('')
   const [category, setCategory] = useState('')
@@ -109,91 +108,105 @@ export default function ExpensesPage() {
   const showCardName = paymentMethod === 'Card' || paymentMethod === 'Debit'
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <h1 className="text-2xl font-bold">Expenses</h1>
-        <Button onClick={openAdd}>
+    <div className="flex flex-1 flex-col gap-4 py-4 md:gap-6 md:py-6">
+      <div className="flex items-center justify-between px-4 lg:px-6">
+        <div>
+          <h1 className="text-2xl font-semibold">Expenses</h1>
+          <p className="text-muted-foreground text-sm">Manage and track your expenses.</p>
+        </div>
+        <Button onClick={openAdd} size="sm">
           <Plus className="h-4 w-4 mr-2" /> Add Expense
         </Button>
       </div>
 
       {loading ? (
-        <div className="text-center py-12 text-muted-foreground">Loading expenses...</div>
+        <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">Loading expenses...</div>
       ) : expenses.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
-          No expenses yet. Click "Add Expense" to create your first one.
+        <div className="px-4 lg:px-6">
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-16">
+              <p className="text-sm text-muted-foreground mb-4">No expenses yet.</p>
+              <Button onClick={openAdd} variant="outline" size="sm">
+                <Plus className="h-4 w-4 mr-2" /> Add your first expense
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       ) : (
         <>
           {/* Desktop Table */}
-          <div className="hidden md:block">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Merchant</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead>Payment</TableHead>
-                  <TableHead>Notes</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {expenses.map((exp) => (
-                  <TableRow key={exp.id}>
-                    <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                      {formatDateTime(exp.timestamp)}
-                    </TableCell>
-                    <TableCell className="font-medium">{exp.merchant}</TableCell>
-                    <TableCell>
-                      <Badge variant="secondary" style={{ backgroundColor: CATEGORY_COLORS[exp.category] + '20', color: CATEGORY_COLORS[exp.category] || '#8b949e', borderColor: 'transparent' }}>
-                        {exp.category}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right font-semibold text-primary">{formatMoney(exp.amount)}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {exp.paymentMethod}{exp.cardName ? ` (${exp.cardName})` : ''}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">{exp.notes}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(exp)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button size="icon" variant="ghost" className="h-8 w-8 text-red-400 hover:text-red-300" onClick={() => setDeleteTarget(exp)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+          <div className="hidden md:block px-4 lg:px-6">
+            <div className="rounded-lg border bg-card">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Merchant</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                    <TableHead>Payment</TableHead>
+                    <TableHead>Notes</TableHead>
+                    <TableHead className="text-right w-[100px]">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {expenses.map((exp) => (
+                    <TableRow key={exp.id}>
+                      <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                        {formatDateTime(exp.timestamp)}
+                      </TableCell>
+                      <TableCell className="font-medium">{exp.merchant}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="font-normal">
+                          <div className="h-2 w-2 rounded-full mr-1.5 shrink-0" style={{ backgroundColor: CATEGORY_COLORS[exp.category] || '#27272a' }} />
+                          {exp.category}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right font-medium">{formatMoney(exp.amount)}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {exp.paymentMethod}{exp.cardName ? ` · ${exp.cardName}` : ''}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">{exp.notes}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(exp)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => setDeleteTarget(exp)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </div>
 
           {/* Mobile Cards */}
-          <div className="md:hidden space-y-3">
+          <div className="md:hidden flex flex-col gap-3 px-4 lg:px-6">
             {expenses.map((exp) => (
               <Card key={exp.id}>
                 <CardContent className="p-4">
                   <div className="flex justify-between items-start mb-2">
                     <div>
-                      <p className="font-medium">{exp.merchant}</p>
+                      <p className="text-sm font-medium">{exp.merchant}</p>
                       <p className="text-xs text-muted-foreground">{formatDateTime(exp.timestamp)}</p>
                     </div>
-                    <p className="text-lg font-bold text-primary">{formatMoney(exp.amount)}</p>
+                    <p className="text-sm font-bold">{formatMoney(exp.amount)}</p>
                   </div>
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2">
-                      <Badge variant="secondary" style={{ backgroundColor: CATEGORY_COLORS[exp.category] + '20', color: CATEGORY_COLORS[exp.category] || '#8b949e', borderColor: 'transparent' }}>
+                      <Badge variant="outline" className="font-normal text-xs">
+                        <div className="h-1.5 w-1.5 rounded-full mr-1 shrink-0" style={{ backgroundColor: CATEGORY_COLORS[exp.category] || '#27272a' }} />
                         {exp.category}
                       </Badge>
                       <span className="text-xs text-muted-foreground">{exp.paymentMethod}</span>
                     </div>
                     <div className="flex gap-1">
-                      <Button size="sm" variant="ghost" onClick={() => openEdit(exp)}><Pencil className="h-4 w-4" /></Button>
-                      <Button size="sm" variant="ghost" className="text-red-400" onClick={() => setDeleteTarget(exp)}><Trash2 className="h-4 w-4" /></Button>
+                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(exp)}><Pencil className="h-3.5 w-3.5" /></Button>
+                      <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => setDeleteTarget(exp)}><Trash2 className="h-3.5 w-3.5" /></Button>
                     </div>
                   </div>
                   {exp.notes && <p className="text-xs text-muted-foreground mt-2 truncate">{exp.notes}</p>}
@@ -214,7 +227,7 @@ export default function ExpensesPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Amount</Label>
-                <Input type="number" step="0.01" min="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} required />
+                <Input type="number" step="0.01" min="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} required placeholder="0.00" />
               </div>
               <div className="space-y-2">
                 <Label>Merchant</Label>
@@ -226,7 +239,7 @@ export default function ExpensesPage() {
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
                 <option value="">Auto-detect (AI)</option>
                 {CATEGORY_GROUPS.map((g) => (
@@ -244,7 +257,7 @@ export default function ExpensesPage() {
                 <select
                   value={paymentMethod}
                   onChange={(e) => setPaymentMethod(e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 >
                   {PAYMENT_METHODS.map((m) => (
                     <option key={m} value={m}>{m}</option>
@@ -268,7 +281,7 @@ export default function ExpensesPage() {
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>Cancel</Button>
-              <Button type="submit">{editing ? 'Update' : 'Add Expense'}</Button>
+              <Button type="submit">{editing ? 'Save changes' : 'Add Expense'}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -278,7 +291,7 @@ export default function ExpensesPage() {
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null) }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Expense?</AlertDialogTitle>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This will permanently delete the {formatMoney(deleteTarget?.amount ?? 0)} expense from {deleteTarget?.merchant}. This action cannot be undone.
             </AlertDialogDescription>

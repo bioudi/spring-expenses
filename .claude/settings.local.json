@@ -23,7 +23,14 @@
       "Bash(npm run build:*)",
       "Bash(mvn package:*)",
       "Bash(jar tf:*)",
-      "Bash(mvn clean package:*)"
+      "Bash(mvn clean package:*)",
+      "WebFetch(domain:ui.shadcn.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(gh api:*)",
+      "Bash(gh search code:*)",
+      "Bash(npx shadcn@latest add:*)",
+      "Bash(npm ls:*)"
     ]
   }
 }

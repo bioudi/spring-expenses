@@ -4,38 +4,99 @@
 
 @layer base {
   :root {
-    --background: 230 15% 7%;
-    --foreground: 216 14% 89%;
+    color-scheme: light;
 
-    --card: 225 13% 13%;
-    --card-foreground: 216 14% 89%;
+    --background: 0 0% 100%;
+    --foreground: 0 0% 5.9%;
 
-    --popover: 225 13% 13%;
-    --popover-foreground: 216 14% 89%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 5.9%;
 
-    --primary: 212 100% 67%;
-    --primary-foreground: 0 0% 100%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 5.9%;
 
-    --secondary: 225 10% 16%;
-    --secondary-foreground: 216 14% 89%;
+    --primary: 0 0% 10.4%;
+    --primary-foreground: 0 0% 98%;
 
-    --muted: 225 10% 16%;
-    --muted-foreground: 215 8% 57%;
+    --secondary: 0 0% 96.1%;
+    --secondary-foreground: 0 0% 10.4%;
 
-    --accent: 225 10% 16%;
-    --accent-foreground: 216 14% 89%;
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 39.1%;
 
-    --destructive: 0 72% 49%;
-    --destructive-foreground: 0 0% 100%;
+    --accent: 0 0% 96.1%;
+    --accent-foreground: 0 0% 10.4%;
 
-    --border: 215 11% 21%;
-    --input: 215 11% 21%;
-    --ring: 212 100% 67%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
 
-    --radius: 0.5rem;
+    --border: 0 0% 89.8%;
+    --input: 0 0% 89.8%;
+    --ring: 0 0% 54.1%;
 
-    --success: 140 60% 33%;
-    --success-foreground: 140 60% 80%;
+    --radius: 0.625rem;
+
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 0 0% 5.9%;
+    --sidebar-primary: 0 0% 10.4%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 0 0% 96.1%;
+    --sidebar-accent-foreground: 0 0% 10.4%;
+    --sidebar-border: 0 0% 89.8%;
+    --sidebar-ring: 0 0% 54.1%;
+  }
+
+  .dark {
+    color-scheme: dark;
+
+    --background: 0 0% 5.9%;
+    --foreground: 0 0% 98%;
+
+    --card: 0 0% 10.4%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 0 0% 10.4%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 10.4%;
+
+    --secondary: 0 0% 14.9%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 54.1%;
+
+    --accent: 0 0% 22.1%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 0% 19%;
+    --input: 0 0% 19%;
+    --ring: 0 0% 83.9%;
+
+    --chart-1: 221 83% 53%;
+    --chart-2: 160 84% 39%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+
+    --sidebar-background: 0 0% 10.4%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 0 0% 98%;
+    --sidebar-primary-foreground: 0 0% 10.4%;
+    --sidebar-accent: 0 0% 14.9%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 0 0% 19%;
+    --sidebar-ring: 0 0% 39.1%;
   }
 
   * {
@@ -43,8 +104,8 @@
   }
 
   body {
-    @apply bg-background text-foreground;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
     min-height: 100vh;
     margin: 0;
   }

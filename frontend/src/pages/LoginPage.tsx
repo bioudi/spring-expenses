@@ -1,9 +1,9 @@
 import { useSearchParams, Link } from 'react-router-dom'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import { AlertCircle, CheckCircle2, LogOut } from 'lucide-react'
+import { DollarSign } from 'lucide-react'
 
 export default function LoginPage() {
   const [searchParams] = useSearchParams()
@@ -12,71 +12,110 @@ export default function LoginPage() {
   const hasRegistered = searchParams.get('registered') === 'true'
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <Card className="w-full max-w-[400px]">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">
-            <span className="text-primary">$</span> Expense Tracker
-          </CardTitle>
-          <CardDescription>Sign in to your dashboard</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {hasError && (
-            <div className="flex items-center gap-2 p-3 rounded-lg mb-4 bg-destructive/15 border border-destructive text-red-400 text-sm">
-              <AlertCircle className="h-4 w-4 shrink-0" />
-              Invalid email or password
-            </div>
-          )}
-          {hasLogout && (
-            <div className="flex items-center gap-2 p-3 rounded-lg mb-4 bg-green-500/15 border border-green-600 text-green-400 text-sm">
-              <LogOut className="h-4 w-4 shrink-0" />
-              You have been logged out
-            </div>
-          )}
-          {hasRegistered && (
-            <div className="flex items-center gap-2 p-3 rounded-lg mb-4 bg-green-500/15 border border-green-600 text-green-400 text-sm">
-              <CheckCircle2 className="h-4 w-4 shrink-0" />
-              Account created successfully! Please sign in.
-            </div>
-          )}
+    <div className="bg-muted flex min-h-svh flex-col items-center justify-center p-6 md:p-10">
+      <div className="w-full max-w-sm md:max-w-3xl">
+        <Card className="overflow-hidden p-0">
+          <CardContent className="grid p-0 md:grid-cols-2">
+            <div className="p-6 md:p-8">
+              <div className="flex flex-col gap-6">
+                <div className="flex flex-col items-center text-center">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground mb-2">
+                    <DollarSign className="h-5 w-5" />
+                  </div>
+                  <h1 className="text-2xl font-bold">Welcome back</h1>
+                  <p className="text-muted-foreground text-balance">
+                    Sign in to your Expenses Tracker account
+                  </p>
+                </div>
 
-          <form action="/login" method="POST">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  required
-                  autoFocus
-                  placeholder="Enter your email"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  required
-                  placeholder="Enter your password"
-                />
-              </div>
-              <Button type="submit" className="w-full">
-                Sign In
-              </Button>
-            </div>
-          </form>
+                {hasError && (
+                  <div className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                    Invalid email or password
+                  </div>
+                )}
+                {hasLogout && (
+                  <div className="rounded-md border border-green-600/50 bg-green-500/10 px-4 py-3 text-sm text-green-700 dark:text-green-400">
+                    You have been logged out
+                  </div>
+                )}
+                {hasRegistered && (
+                  <div className="rounded-md border border-green-600/50 bg-green-500/10 px-4 py-3 text-sm text-green-700 dark:text-green-400">
+                    Account created! Please sign in.
+                  </div>
+                )}
 
-          <p className="text-center mt-4 text-sm text-muted-foreground">
-            Don&apos;t have an account?{' '}
-            <Link to="/register" className="text-primary hover:underline font-medium">
-              Sign up
-            </Link>
-          </p>
-        </CardContent>
-      </Card>
+                <form action="/login" method="POST">
+                  <div className="flex flex-col gap-6">
+                    <div className="grid gap-3">
+                      <Label htmlFor="email">Email</Label>
+                      <Input
+                        id="email"
+                        name="email"
+                        type="email"
+                        required
+                        autoFocus
+                        placeholder="you@example.com"
+                      />
+                    </div>
+                    <div className="grid gap-3">
+                      <Label htmlFor="password">Password</Label>
+                      <Input
+                        id="password"
+                        name="password"
+                        type="password"
+                        required
+                        placeholder="Enter your password"
+                      />
+                    </div>
+                    <Button type="submit" className="w-full">
+                      Sign In
+                    </Button>
+                  </div>
+                </form>
+
+                <div className="text-center text-sm text-muted-foreground">
+                  Don&apos;t have an account?{' '}
+                  <Link
+                    to="/register"
+                    className="underline underline-offset-4 hover:text-foreground"
+                  >
+                    Sign up
+                  </Link>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-muted relative hidden md:flex md:flex-col md:items-center md:justify-center">
+              <div className="flex flex-col items-center gap-4 p-8 text-center">
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
+                  <DollarSign className="h-8 w-8" />
+                </div>
+                <div className="space-y-2">
+                  <h2 className="text-xl font-semibold tracking-tight">
+                    Expenses Tracker
+                  </h2>
+                  <p className="text-sm text-muted-foreground text-balance">
+                    Track your spending, manage merchants, and gain insights into
+                    your financial habits.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="text-muted-foreground *:[a]:hover:text-foreground text-center text-xs text-balance mt-4">
+          By signing in, you agree to our{' '}
+          <a href="#" className="underline underline-offset-4">
+            Terms of Service
+          </a>{' '}
+          and{' '}
+          <a href="#" className="underline underline-offset-4">
+            Privacy Policy
+          </a>
+          .
+        </div>
+      </div>
     </div>
   )
 }

@@ -16,16 +16,18 @@ export default function AppLayout() {
   if (!ready) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-muted-foreground">Loading...</div>
+        <div className="text-sm text-muted-foreground">Loading...</div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-background">
       <NavBar />
-      <main>
-        <Outlet />
+      <main className="md:pl-56">
+        <div className="min-h-screen">
+          <Outlet />
+        </div>
       </main>
     </div>
   )
