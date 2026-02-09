@@ -8,6 +8,8 @@ import type {
   ChangePasswordRequest,
   RecurringExpenseRequest,
   RecurringExpenseResponse,
+  BudgetRequest,
+  BudgetResponse,
 } from '@/types'
 
 class ApiError extends Error {
@@ -82,4 +84,12 @@ export const api = {
     apiFetch<RecurringExpenseResponse>(`/api/recurring-expenses/${id}/toggle`, { method: 'PATCH' }),
   createRecurringFromExpense: (expenseId: string, data: RecurringExpenseRequest) =>
     apiFetch<RecurringExpenseResponse>(`/api/recurring-expenses/from-expense/${expenseId}`, { method: 'POST', body: JSON.stringify(data) }),
+  getBudgets: () =>
+    apiFetch<BudgetResponse[]>('/api/budgets'),
+  createBudget: (data: BudgetRequest) =>
+    apiFetch<BudgetResponse>('/api/budgets', { method: 'POST', body: JSON.stringify(data) }),
+  updateBudget: (id: string, data: BudgetRequest) =>
+    apiFetch<BudgetResponse>(`/api/budgets/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteBudget: (id: string) =>
+    apiFetch<void>(`/api/budgets/${id}`, { method: 'DELETE' }),
 }

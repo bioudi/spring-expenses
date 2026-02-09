@@ -9,7 +9,7 @@ import { CATEGORY_COLORS } from '@/lib/categories'
 import { formatMoney, toISODate } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
 import { useTheme } from '@/components/theme-provider'
-import type { DashboardResponse, Period, PeriodSummary, CategoryBreakdown, MerchantSummary, DailySpending } from '@/types'
+import type { DashboardResponse, Period, PeriodSummary, CategoryBreakdown, MerchantSummary, DailySpending, BudgetResponse } from '@/types'
 import {
   addDays, subDays, addWeeks, subWeeks, addMonths, subMonths, addYears, subYears,
   format, startOfWeek, endOfWeek, isToday
@@ -68,6 +68,7 @@ export default function DashboardPage() {
   const [period, setPeriod] = useState<Period>('month')
   const [refDate, setRefDate] = useState(new Date())
   const [loading, setLoading] = useState(true)
+  const [budgets, setBudgets] = useState<BudgetResponse[]>([])
   const [themeColors, setThemeColors] = useState(resolveThemeColors)
 
   // Re-resolve CSS variable colors after theme class is applied (needs a frame)
@@ -84,6 +85,10 @@ export default function DashboardPage() {
       .then(setDashboard)
       .finally(() => setLoading(false))
   }, [refDate])
+
+  useEffect(() => {
+    api.getBudgets().then(setBudgets).catch(() => {})
+  }, [])
 
   const data: PeriodSummary | null = dashboard ? dashboard[period] : null
 
@@ -294,6 +299,56 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Budget Overview */}
+          {budgets.length > 0 && (
+            <div className="px-4 lg:px-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Budget Overview</CardTitle>
+                  <CardDescription>Monthly spending limits by category</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {[...budgets]
+                      .sort((a, b) => b.percentUsed - a.percentUsed)
+                      .map((budget) => (
+                        <div key={budget.id} className="space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {budget.categories.map((cat) => (
+                                <div key={cat} className="flex items-center gap-1">
+                                  <div className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: CATEGORY_COLORS[cat] || '#27272a' }} />
+                                  <span className="text-sm font-medium">{cat}</span>
+                                </div>
+                              ))}
+                            </div>
+                            <span className="text-sm text-muted-foreground whitespace-nowrap ml-2">
+                              {formatMoney(budget.spent)} / {formatMoney(budget.monthlyLimit)}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                              <div
+                                className="h-full rounded-full transition-all"
+                                style={{
+                                  width: `${Math.min(budget.percentUsed, 100)}%`,
+                                  backgroundColor: budget.percentUsed >= 100 ? '#ef4444' : budget.percentUsed >= 80 ? '#eab308' : '#22c55e',
+                                }}
+                              />
+                            </div>
+                            <span className="text-xs text-muted-foreground w-10 text-right">{budget.percentUsed.toFixed(0)}%</span>
+                          </div>
+                          {budget.percentUsed >= 100 && (
+                            <p className="text-xs text-red-500 font-medium">Over budget by {formatMoney(Math.abs(budget.remaining))}</p>
+                          )}
+                        </div>
+                      ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
           {/* Daily Spending */}
           <div className="px-4 lg:px-6">

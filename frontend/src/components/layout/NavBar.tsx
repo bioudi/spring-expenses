@@ -1,6 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, Receipt, Store, Settings, LogOut, Wallet, Moon, Sun, Menu, X, Repeat } from 'lucide-react'
+import { LayoutDashboard, Receipt, Store, Settings, LogOut, Wallet, Moon, Sun, Menu, X, Repeat, Target } from 'lucide-react'
 import { useTheme } from '@/components/theme-provider'
 import { Button } from '@/components/ui/button'
 import { useState, useEffect } from 'react'
@@ -9,6 +9,7 @@ const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/expenses', label: 'Expenses', icon: Receipt },
   { to: '/recurring', label: 'Recurring', icon: Repeat },
+  { to: '/budgets', label: 'Budgets', icon: Target },
   { to: '/merchants', label: 'Merchants', icon: Store },
   { to: '/settings', label: 'Settings', icon: Settings },
 ]

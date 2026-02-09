@@ -105,6 +105,22 @@ export interface RecurringExpenseRequest {
   endDate?: string | null
 }
 
+export interface BudgetRequest {
+  categories: string[]
+  monthlyLimit: number
+}
+
+export interface BudgetResponse {
+  id: string
+  categories: string[]
+  monthlyLimit: number
+  spent: number
+  remaining: number
+  percentUsed: number
+  createdAt: string
+  updatedAt: string
+}
+
 export interface RecurringExpenseResponse {
   id: string
   amount: number
