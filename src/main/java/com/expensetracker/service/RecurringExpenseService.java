@@ -187,7 +187,7 @@ public class RecurringExpenseService {
         return response;
     }
 
-    @Scheduled(cron = "0 0 0 * * ?")
+    @Scheduled(cron = "0 30 8 * * ?")
     @Transactional
     public void processRecurringExpenses() {
         LocalDate today = LocalDate.now();
