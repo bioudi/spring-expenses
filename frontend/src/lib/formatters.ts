@@ -30,3 +30,34 @@ export function toLocalDateTimeInput(date?: Date): string {
   const local = new Date(d.getTime() - offset * 60 * 1000)
   return local.toISOString().slice(0, 16)
 }
+
+const DAY_NAMES: Record<string, string> = {
+  MONDAY: 'Monday',
+  TUESDAY: 'Tuesday',
+  WEDNESDAY: 'Wednesday',
+  THURSDAY: 'Thursday',
+  FRIDAY: 'Friday',
+  SATURDAY: 'Saturday',
+  SUNDAY: 'Sunday',
+}
+
+function ordinal(n: number): string {
+  const s = ['th', 'st', 'nd', 'rd']
+  const v = n % 100
+  return n + (s[(v - 20) % 10] || s[v] || s[0])
+}
+
+export function formatRecurrence(frequency: string, dayOfWeek?: string | null, dayOfMonth?: number | null): string {
+  switch (frequency) {
+    case 'DAILY':
+      return 'Daily'
+    case 'WEEKLY':
+      return dayOfWeek ? `Every ${DAY_NAMES[dayOfWeek] || dayOfWeek}` : 'Weekly'
+    case 'BI_WEEKLY':
+      return dayOfWeek ? `Every other ${DAY_NAMES[dayOfWeek] || dayOfWeek}` : 'Bi-weekly'
+    case 'MONTHLY':
+      return dayOfMonth ? `Monthly on the ${ordinal(dayOfMonth)}` : 'Monthly'
+    default:
+      return frequency
+  }
+}

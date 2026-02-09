@@ -23,6 +23,7 @@ public class ExpenseResponse {
     private LocalDateTime timestamp;
     private String notes;
     private LocalDateTime createdAt;
+    private UUID recurringExpenseId;
 
     public static ExpenseResponse fromEntity(Expense expense) {
         return ExpenseResponse.builder()
@@ -35,6 +36,7 @@ public class ExpenseResponse {
                 .timestamp(expense.getTimestamp())
                 .notes(expense.getNotes())
                 .createdAt(expense.getCreatedAt())
+                .recurringExpenseId(expense.getRecurringExpenseId())
                 .build();
     }
 }

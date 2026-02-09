@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { Plus, Pencil, Trash2, Repeat } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -13,7 +13,25 @@ import { api } from '@/lib/api'
 import { formatMoney, formatDateTime, toLocalDateTimeInput } from '@/lib/formatters'
 import { CATEGORY_COLORS, CATEGORY_GROUPS, PAYMENT_METHODS } from '@/lib/categories'
 import { toast } from 'sonner'
-import type { ExpenseResponse, ExpenseRequest } from '@/types'
+import { toISODate } from '@/lib/formatters'
+import type { ExpenseResponse, ExpenseRequest, RecurrenceFrequency, DayOfWeek } from '@/types'
+
+const FREQUENCIES: { value: RecurrenceFrequency; label: string }[] = [
+  { value: 'DAILY', label: 'Daily' },
+  { value: 'WEEKLY', label: 'Weekly' },
+  { value: 'BI_WEEKLY', label: 'Bi-weekly' },
+  { value: 'MONTHLY', label: 'Monthly' },
+]
+
+const DAYS_OF_WEEK: { value: DayOfWeek; label: string }[] = [
+  { value: 'MONDAY', label: 'Monday' },
+  { value: 'TUESDAY', label: 'Tuesday' },
+  { value: 'WEDNESDAY', label: 'Wednesday' },
+  { value: 'THURSDAY', label: 'Thursday' },
+  { value: 'FRIDAY', label: 'Friday' },
+  { value: 'SATURDAY', label: 'Saturday' },
+  { value: 'SUNDAY', label: 'Sunday' },
+]
 
 export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<ExpenseResponse[]>([])
@@ -21,6 +39,13 @@ export default function ExpensesPage() {
   const [editing, setEditing] = useState<ExpenseResponse | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<ExpenseResponse | null>(null)
   const [loading, setLoading] = useState(true)
+
+  const [recurringTarget, setRecurringTarget] = useState<ExpenseResponse | null>(null)
+  const [recFrequency, setRecFrequency] = useState<RecurrenceFrequency>('MONTHLY')
+  const [recDayOfWeek, setRecDayOfWeek] = useState<DayOfWeek | ''>('')
+  const [recDayOfMonth, setRecDayOfMonth] = useState('')
+  const [recStartDate, setRecStartDate] = useState('')
+  const [recEndDate, setRecEndDate] = useState('')
 
   const [amount, setAmount] = useState('')
   const [merchant, setMerchant] = useState('')
@@ -105,6 +130,36 @@ export default function ExpensesPage() {
     }
   }
 
+  function openMakeRecurring(exp: ExpenseResponse) {
+    setRecurringTarget(exp)
+    setRecFrequency('MONTHLY')
+    setRecDayOfWeek('')
+    setRecDayOfMonth('')
+    setRecStartDate(toISODate(new Date()))
+    setRecEndDate('')
+  }
+
+  async function handleMakeRecurring(e: React.FormEvent) {
+    e.preventDefault()
+    if (!recurringTarget) return
+    try {
+      await api.createRecurringFromExpense(recurringTarget.id, {
+        amount: recurringTarget.amount,
+        merchant: recurringTarget.merchant,
+        frequency: recFrequency,
+        dayOfWeek: (recFrequency === 'WEEKLY' || recFrequency === 'BI_WEEKLY') && recDayOfWeek ? recDayOfWeek as DayOfWeek : null,
+        dayOfMonth: recFrequency === 'MONTHLY' && recDayOfMonth ? parseInt(recDayOfMonth) : null,
+        startDate: recStartDate,
+        endDate: recEndDate || null,
+      })
+      setRecurringTarget(null)
+      loadExpenses()
+      toast.success('Recurring expense created')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to create recurring expense')
+    }
+  }
+
   const showCardName = paymentMethod === 'Card' || paymentMethod === 'Debit'
 
   return (
@@ -155,7 +210,12 @@ export default function ExpensesPage() {
                       <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                         {formatDateTime(exp.timestamp)}
                       </TableCell>
-                      <TableCell className="font-medium">{exp.merchant}</TableCell>
+                      <TableCell className="font-medium">
+                        <span className="inline-flex items-center gap-1.5">
+                          {exp.merchant}
+                          {exp.recurringExpenseId && <span title="Recurring"><Repeat className="h-3 w-3 text-muted-foreground" /></span>}
+                        </span>
+                      </TableCell>
                       <TableCell>
                         <Badge variant="outline" className="font-normal">
                           <div className="h-2 w-2 rounded-full mr-1.5 shrink-0" style={{ backgroundColor: CATEGORY_COLORS[exp.category] || '#27272a' }} />
@@ -172,6 +232,11 @@ export default function ExpensesPage() {
                           <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(exp)}>
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
+                          {!exp.recurringExpenseId && (
+                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openMakeRecurring(exp)} title="Make Recurring">
+                              <Repeat className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
                           <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => setDeleteTarget(exp)}>
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
@@ -191,7 +256,10 @@ export default function ExpensesPage() {
                 <CardContent className="p-4">
                   <div className="flex justify-between items-start mb-2">
                     <div>
-                      <p className="text-sm font-medium">{exp.merchant}</p>
+                      <p className="text-sm font-medium inline-flex items-center gap-1.5">
+                        {exp.merchant}
+                        {exp.recurringExpenseId && <Repeat className="h-3 w-3 text-muted-foreground" />}
+                      </p>
                       <p className="text-xs text-muted-foreground">{formatDateTime(exp.timestamp)}</p>
                     </div>
                     <p className="text-sm font-bold">{formatMoney(exp.amount)}</p>
@@ -206,6 +274,9 @@ export default function ExpensesPage() {
                     </div>
                     <div className="flex gap-1">
                       <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(exp)}><Pencil className="h-3.5 w-3.5" /></Button>
+                      {!exp.recurringExpenseId && (
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openMakeRecurring(exp)}><Repeat className="h-3.5 w-3.5" /></Button>
+                      )}
                       <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => setDeleteTarget(exp)}><Trash2 className="h-3.5 w-3.5" /></Button>
                     </div>
                   </div>
@@ -302,6 +373,69 @@ export default function ExpensesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Make Recurring Dialog */}
+      <Dialog open={!!recurringTarget} onOpenChange={(open) => { if (!open) setRecurringTarget(null) }}>
+        <DialogContent onClose={() => setRecurringTarget(null)}>
+          <DialogHeader>
+            <DialogTitle>Make Recurring</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Set up {recurringTarget?.merchant} ({formatMoney(recurringTarget?.amount ?? 0)}) as a recurring expense.
+          </p>
+          <form onSubmit={handleMakeRecurring} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Frequency</Label>
+                <select
+                  value={recFrequency}
+                  onChange={(e) => setRecFrequency(e.target.value as RecurrenceFrequency)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                  {FREQUENCIES.map((f) => (
+                    <option key={f.value} value={f.value}>{f.label}</option>
+                  ))}
+                </select>
+              </div>
+              {(recFrequency === 'WEEKLY' || recFrequency === 'BI_WEEKLY') && (
+                <div className="space-y-2">
+                  <Label>Day of Week</Label>
+                  <select
+                    value={recDayOfWeek}
+                    onChange={(e) => setRecDayOfWeek(e.target.value as DayOfWeek)}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  >
+                    <option value="">Any</option>
+                    {DAYS_OF_WEEK.map((d) => (
+                      <option key={d.value} value={d.value}>{d.label}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {recFrequency === 'MONTHLY' && (
+                <div className="space-y-2">
+                  <Label>Day of Month</Label>
+                  <Input type="number" min="1" max="31" value={recDayOfMonth} onChange={(e) => setRecDayOfMonth(e.target.value)} placeholder="e.g. 15" />
+                </div>
+              )}
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Start Date</Label>
+                <Input type="date" value={recStartDate} onChange={(e) => setRecStartDate(e.target.value)} required />
+              </div>
+              <div className="space-y-2">
+                <Label>End Date (optional)</Label>
+                <Input type="date" value={recEndDate} onChange={(e) => setRecEndDate(e.target.value)} />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setRecurringTarget(null)}>Cancel</Button>
+              <Button type="submit">Create Recurring</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

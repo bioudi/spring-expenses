@@ -6,6 +6,8 @@ import type {
   UserProfile,
   RegisterRequest,
   ChangePasswordRequest,
+  RecurringExpenseRequest,
+  RecurringExpenseResponse,
 } from '@/types'
 
 class ApiError extends Error {
@@ -66,4 +68,18 @@ export const api = {
     apiFetch<{ apiKey: string }>('/api/user/regenerate-api-key', { method: 'POST' }),
   register: (data: RegisterRequest) =>
     apiFetch<{ message: string }>('/api/auth/register', { method: 'POST', body: JSON.stringify(data) }),
+  getRecurringExpenses: () =>
+    apiFetch<RecurringExpenseResponse[]>('/api/recurring-expenses'),
+  createRecurringExpense: (data: RecurringExpenseRequest) =>
+    apiFetch<RecurringExpenseResponse>('/api/recurring-expenses', { method: 'POST', body: JSON.stringify(data) }),
+  getRecurringExpense: (id: string) =>
+    apiFetch<RecurringExpenseResponse>(`/api/recurring-expenses/${id}`),
+  updateRecurringExpense: (id: string, data: RecurringExpenseRequest) =>
+    apiFetch<RecurringExpenseResponse>(`/api/recurring-expenses/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteRecurringExpense: (id: string) =>
+    apiFetch<void>(`/api/recurring-expenses/${id}`, { method: 'DELETE' }),
+  toggleRecurringExpense: (id: string) =>
+    apiFetch<RecurringExpenseResponse>(`/api/recurring-expenses/${id}/toggle`, { method: 'PATCH' }),
+  createRecurringFromExpense: (expenseId: string, data: RecurringExpenseRequest) =>
+    apiFetch<RecurringExpenseResponse>(`/api/recurring-expenses/from-expense/${expenseId}`, { method: 'POST', body: JSON.stringify(data) }),
 }

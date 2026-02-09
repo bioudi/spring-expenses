@@ -10,6 +10,7 @@ export interface ExpenseResponse {
   timestamp: string
   notes: string | null
   createdAt: string
+  recurringExpenseId: string | null
 }
 
 export interface ExpenseRequest {
@@ -84,4 +85,41 @@ export interface RegisterRequest {
 export interface ChangePasswordRequest {
   currentPassword: string
   newPassword: string
+}
+
+export type RecurrenceFrequency = 'DAILY' | 'WEEKLY' | 'BI_WEEKLY' | 'MONTHLY'
+
+export type DayOfWeek = 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY'
+
+export interface RecurringExpenseRequest {
+  amount: number
+  merchant: string
+  category?: string
+  paymentMethod?: string
+  cardName?: string | null
+  notes?: string | null
+  frequency: RecurrenceFrequency
+  dayOfWeek?: DayOfWeek | null
+  dayOfMonth?: number | null
+  startDate: string
+  endDate?: string | null
+}
+
+export interface RecurringExpenseResponse {
+  id: string
+  amount: number
+  category: string
+  merchant: string
+  paymentMethod: string
+  cardName: string | null
+  notes: string | null
+  frequency: RecurrenceFrequency
+  dayOfWeek: DayOfWeek | null
+  dayOfMonth: number | null
+  startDate: string
+  endDate: string | null
+  nextOccurrence: string
+  active: boolean
+  createdAt: string
+  updatedAt: string
 }

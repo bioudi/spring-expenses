@@ -33,7 +33,10 @@
       "Bash(npm ls:*)",
       "WebFetch(domain:www.namecheap.com)",
       "WebFetch(domain:dnschecker.org)",
-      "WebFetch(domain:instantdomainsearch.com)"
+      "WebFetch(domain:instantdomainsearch.com)",
+      "Bash(test:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run lint:*)"
     ]
   }
 }
