@@ -20,4 +20,7 @@ public interface RecurringExpenseRepository extends JpaRepository<RecurringExpen
 
     @Query("SELECT r FROM RecurringExpense r WHERE r.active = true AND r.nextOccurrence <= :today AND (r.endDate IS NULL OR r.endDate >= :today)")
     List<RecurringExpense> findDueRecurringExpenses(@Param("today") LocalDate today);
+
+    @Query("SELECT r FROM RecurringExpense r JOIN FETCH r.user WHERE r.active = true AND r.nextOccurrence = :date AND (r.endDate IS NULL OR r.endDate >= :date)")
+    List<RecurringExpense> findDueOnDate(@Param("date") LocalDate date);
 }
