@@ -9,30 +9,26 @@ import { CATEGORY_COLORS } from '@/lib/categories'
 import { formatMoney, toISODate } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
 import { useTheme } from '@/components/theme-provider'
+import { useI18n } from '@/i18n'
 import type { DashboardResponse, Period, PeriodSummary, CategoryBreakdown, MerchantSummary, DailySpending, BudgetResponse } from '@/types'
 import {
   addDays, subDays, addWeeks, subWeeks, addMonths, subMonths, addYears, subYears,
   format, startOfWeek, endOfWeek, isToday
 } from 'date-fns'
+import { enUS, fr } from 'date-fns/locale'
 
-const PERIODS: { key: Period; label: string }[] = [
-  { key: 'today', label: 'Today' },
-  { key: 'week', label: 'Week' },
-  { key: 'month', label: 'Month' },
-  { key: 'year', label: 'Year' },
-]
-
-function formatPeriodLabel(period: Period, date: Date): string {
+function formatPeriodLabel(period: Period, date: Date, lang: 'en' | 'fr', todayLabel: string): string {
+  const loc = lang === 'fr' ? fr : enUS
   switch (period) {
     case 'today':
-      return isToday(date) ? 'Today' : format(date, 'EEEE, MMM d, yyyy')
+      return isToday(date) ? todayLabel : format(date, 'EEEE, MMM d, yyyy', { locale: loc })
     case 'week': {
       const start = startOfWeek(date, { weekStartsOn: 1 })
       const end = endOfWeek(date, { weekStartsOn: 1 })
-      return `${format(start, 'MMM d')} – ${format(end, 'MMM d, yyyy')}`
+      return `${format(start, 'MMM d', { locale: loc })} – ${format(end, 'MMM d, yyyy', { locale: loc })}`
     }
     case 'month':
-      return format(date, 'MMMM yyyy')
+      return format(date, 'MMMM yyyy', { locale: loc })
     case 'year':
       return format(date, 'yyyy')
   }
@@ -64,12 +60,20 @@ function resolveThemeColors() {
 
 export default function DashboardPage() {
   const { theme } = useTheme()
+  const { t, tc, language } = useI18n()
   const [dashboard, setDashboard] = useState<DashboardResponse | null>(null)
   const [period, setPeriod] = useState<Period>('month')
   const [refDate, setRefDate] = useState(new Date())
   const [loading, setLoading] = useState(true)
   const [budgets, setBudgets] = useState<BudgetResponse[]>([])
   const [themeColors, setThemeColors] = useState(resolveThemeColors)
+
+  const PERIODS: { key: Period; label: string }[] = [
+    { key: 'today', label: t('dashboard.today') },
+    { key: 'week', label: t('dashboard.week') },
+    { key: 'month', label: t('dashboard.month') },
+    { key: 'year', label: t('dashboard.year') },
+  ]
 
   // Re-resolve CSS variable colors after theme class is applied (needs a frame)
   useEffect(() => {
@@ -98,14 +102,14 @@ export default function DashboardPage() {
       (a, b) => (b[1] as CategoryBreakdown).total - (a[1] as CategoryBreakdown).total
     )
     return {
-      labels: entries.map(([k]) => k),
+      labels: entries.map(([k]) => tc(k)),
       datasets: [{
         data: entries.map(([, v]) => (v as CategoryBreakdown).total),
         backgroundColor: entries.map(([k]) => CATEGORY_COLORS[k] || '#27272a'),
         borderWidth: 0,
       }],
     }
-  }, [data])
+  }, [data, tc])
 
   const merchantChartData = useMemo(() => {
     if (!data || !data.topMerchants || data.topMerchants.length === 0) return null
@@ -121,19 +125,20 @@ export default function DashboardPage() {
 
   const dailyChartData = useMemo(() => {
     if (!data || !data.dailySpending || data.dailySpending.length === 0) return null
+    const loc = language === 'fr' ? fr : enUS
     return {
       labels: data.dailySpending.map((d: DailySpending) => {
         const date = new Date(d.date + 'T00:00:00')
-        return format(date, 'MMM d')
+        return format(date, 'MMM d', { locale: loc })
       }),
       datasets: [{
-        label: 'Spending',
+        label: t('dashboard.totalSpent'),
         data: data.dailySpending.map((d: DailySpending) => d.total),
         backgroundColor: chartColorAlpha,
         borderRadius: 4,
       }],
     }
-  }, [data, chartColorAlpha])
+  }, [data, chartColorAlpha, language, t])
 
   const categoryCount = data?.categoryBreakdown ? Object.keys(data.categoryBreakdown).length : 0
 
@@ -142,15 +147,15 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-4 lg:px-6">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Dashboard</h2>
-          <p className="text-sm text-muted-foreground">Your expense overview and analytics.</p>
+          <h2 className="text-2xl font-bold tracking-tight">{t('dashboard.title')}</h2>
+          <p className="text-sm text-muted-foreground">{t('dashboard.description')}</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setRefDate(navigateDate(refDate, period, -1))}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <span className="text-sm font-medium min-w-[140px] sm:min-w-[180px] text-center">
-            {formatPeriodLabel(period, refDate)}
+            {formatPeriodLabel(period, refDate, language, t('dashboard.today'))}
           </span>
           <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setRefDate(navigateDate(refDate, period, 1))}>
             <ChevronRight className="h-4 w-4" />
@@ -179,62 +184,62 @@ export default function DashboardPage() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">Loading dashboard...</div>
+        <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">{t('dashboard.loadingDashboard')}</div>
       ) : !data ? (
-        <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">No data available</div>
+        <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">{t('common.noData')}</div>
       ) : (
         <>
           {/* Stat Cards */}
           <div className="grid grid-cols-1 gap-4 px-4 lg:px-6 sm:grid-cols-2 xl:grid-cols-4">
             <Card className="@container/card">
               <CardHeader>
-                <CardDescription>Total Spent</CardDescription>
+                <CardDescription>{t('dashboard.totalSpent')}</CardDescription>
                 <CardTitle className="text-2xl font-semibold tabular-nums">
-                  {formatMoney(data.totalSpent)}
+                  {formatMoney(data.totalSpent, language)}
                 </CardTitle>
               </CardHeader>
               <CardFooter className="flex-col items-start gap-1 text-sm">
                 <div className="text-muted-foreground">
-                  {formatPeriodLabel(period, refDate)}
+                  {formatPeriodLabel(period, refDate, language, t('dashboard.today'))}
                 </div>
               </CardFooter>
             </Card>
             <Card className="@container/card">
               <CardHeader>
-                <CardDescription>Transactions</CardDescription>
+                <CardDescription>{t('dashboard.transactions')}</CardDescription>
                 <CardTitle className="text-2xl font-semibold tabular-nums">
                   {data.transactionCount}
                 </CardTitle>
               </CardHeader>
               <CardFooter className="flex-col items-start gap-1 text-sm">
                 <div className="text-muted-foreground">
-                  {formatPeriodLabel(period, refDate)}
+                  {formatPeriodLabel(period, refDate, language, t('dashboard.today'))}
                 </div>
               </CardFooter>
             </Card>
             <Card className="@container/card">
               <CardHeader>
-                <CardDescription>Avg / Transaction</CardDescription>
+                <CardDescription>{t('dashboard.avgPerTransaction')}</CardDescription>
                 <CardTitle className="text-2xl font-semibold tabular-nums">
-                  {formatMoney(data.avgPerTransaction)}
+                  {formatMoney(data.avgPerTransaction, language)}
                 </CardTitle>
               </CardHeader>
               <CardFooter className="flex-col items-start gap-1 text-sm">
                 <div className="text-muted-foreground">
-                  {data.transactionCount} transaction{data.transactionCount !== 1 ? 's' : ''} this period
+                  {t('dashboard.transactionCount', { count: data.transactionCount, plural: data.transactionCount !== 1 ? 's' : '' })}
                 </div>
               </CardFooter>
             </Card>
             <Card className="@container/card">
               <CardHeader>
-                <CardDescription>Categories</CardDescription>
+                <CardDescription>{t('dashboard.categoriesLabel')}</CardDescription>
                 <CardTitle className="text-2xl font-semibold tabular-nums">
                   {categoryCount}
                 </CardTitle>
               </CardHeader>
               <CardFooter className="flex-col items-start gap-1 text-sm">
                 <div className="text-muted-foreground">
-                  Distinct categories used
+                  {t('dashboard.distinctCategories')}
                 </div>
               </CardFooter>
             </Card>
@@ -244,8 +249,8 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 gap-4 px-4 lg:px-6 lg:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle>Category Breakdown</CardTitle>
-                <CardDescription>Spending distribution by category</CardDescription>
+                <CardTitle>{t('dashboard.categoryBreakdown')}</CardTitle>
+                <CardDescription>{t('dashboard.spendingByCategory')}</CardDescription>
               </CardHeader>
               <CardContent>
                 {categoryChartData ? (
@@ -266,15 +271,15 @@ export default function DashboardPage() {
                     />
                   </div>
                 ) : (
-                  <div className="h-[280px] flex items-center justify-center text-sm text-muted-foreground">No category data</div>
+                  <div className="h-[280px] flex items-center justify-center text-sm text-muted-foreground">{t('dashboard.noCategoryData')}</div>
                 )}
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>Top Merchants</CardTitle>
-                <CardDescription>Highest spending merchants</CardDescription>
+                <CardTitle>{t('dashboard.topMerchants')}</CardTitle>
+                <CardDescription>{t('dashboard.highestSpending')}</CardDescription>
               </CardHeader>
               <CardContent>
                 {merchantChartData ? (
@@ -294,7 +299,7 @@ export default function DashboardPage() {
                     />
                   </div>
                 ) : (
-                  <div className="h-[280px] flex items-center justify-center text-sm text-muted-foreground">No merchant data</div>
+                  <div className="h-[280px] flex items-center justify-center text-sm text-muted-foreground">{t('dashboard.noMerchantData')}</div>
                 )}
               </CardContent>
             </Card>
@@ -305,8 +310,8 @@ export default function DashboardPage() {
             <div className="px-4 lg:px-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Budget Overview</CardTitle>
-                  <CardDescription>Monthly spending limits by category</CardDescription>
+                  <CardTitle>{t('dashboard.budgetOverview')}</CardTitle>
+                  <CardDescription>{t('dashboard.budgetDescription')}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
@@ -319,12 +324,12 @@ export default function DashboardPage() {
                               {budget.categories.map((cat) => (
                                 <div key={cat} className="flex items-center gap-1">
                                   <div className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: CATEGORY_COLORS[cat] || '#27272a' }} />
-                                  <span className="text-sm font-medium">{cat}</span>
+                                  <span className="text-sm font-medium">{tc(cat)}</span>
                                 </div>
                               ))}
                             </div>
                             <span className="text-sm text-muted-foreground whitespace-nowrap ml-2">
-                              {formatMoney(budget.spent)} / {formatMoney(budget.monthlyLimit)}
+                              {formatMoney(budget.spent, language)} / {formatMoney(budget.monthlyLimit, language)}
                             </span>
                           </div>
                           <div className="flex items-center gap-2">
@@ -340,7 +345,7 @@ export default function DashboardPage() {
                             <span className="text-xs text-muted-foreground w-10 text-right">{budget.percentUsed.toFixed(0)}%</span>
                           </div>
                           {budget.percentUsed >= 100 && (
-                            <p className="text-xs text-red-500 font-medium">Over budget by {formatMoney(Math.abs(budget.remaining))}</p>
+                            <p className="text-xs text-red-500 font-medium">{t('dashboard.overBudgetBy', { amount: formatMoney(Math.abs(budget.remaining), language) })}</p>
                           )}
                         </div>
                       ))}
@@ -354,8 +359,8 @@ export default function DashboardPage() {
           <div className="px-4 lg:px-6">
             <Card>
               <CardHeader>
-                <CardTitle>Daily Spending</CardTitle>
-                <CardDescription>Spending over time for this period</CardDescription>
+                <CardTitle>{t('dashboard.dailySpending')}</CardTitle>
+                <CardDescription>{t('dashboard.dailyDescription')}</CardDescription>
               </CardHeader>
               <CardContent>
                 {dailyChartData ? (
@@ -374,7 +379,7 @@ export default function DashboardPage() {
                     />
                   </div>
                 ) : (
-                  <div className="h-[250px] flex items-center justify-center text-sm text-muted-foreground">No daily data</div>
+                  <div className="h-[250px] flex items-center justify-center text-sm text-muted-foreground">{t('dashboard.noDailyData')}</div>
                 )}
               </CardContent>
             </Card>
@@ -385,8 +390,8 @@ export default function DashboardPage() {
             <div className="px-4 lg:px-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Category Details</CardTitle>
-                  <CardDescription>Detailed breakdown by category</CardDescription>
+                  <CardTitle>{t('dashboard.categoryDetails')}</CardTitle>
+                  <CardDescription>{t('dashboard.categoryDetailsDesc')}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {/* Desktop table */}
@@ -394,10 +399,10 @@ export default function DashboardPage() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Category</TableHead>
-                          <TableHead className="text-right">Total</TableHead>
-                          <TableHead className="text-right">Count</TableHead>
-                          <TableHead className="text-right hidden md:table-cell">Avg</TableHead>
+                          <TableHead>{t('dashboard.category')}</TableHead>
+                          <TableHead className="text-right">{t('dashboard.total')}</TableHead>
+                          <TableHead className="text-right">{t('dashboard.count')}</TableHead>
+                          <TableHead className="text-right hidden md:table-cell">{t('dashboard.avg')}</TableHead>
                           <TableHead className="text-right">%</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -411,12 +416,12 @@ export default function DashboardPage() {
                                 <TableCell>
                                   <div className="flex items-center gap-2">
                                     <div className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: CATEGORY_COLORS[cat] || '#27272a' }} />
-                                    <span className="text-sm font-medium">{cat}</span>
+                                    <span className="text-sm font-medium">{tc(cat)}</span>
                                   </div>
                                 </TableCell>
-                                <TableCell className="text-right font-medium">{formatMoney(cb.total)}</TableCell>
+                                <TableCell className="text-right font-medium">{formatMoney(cb.total, language)}</TableCell>
                                 <TableCell className="text-right text-muted-foreground">{cb.count}</TableCell>
-                                <TableCell className="text-right text-muted-foreground hidden md:table-cell">{formatMoney(cb.avgPerTransaction)}</TableCell>
+                                <TableCell className="text-right text-muted-foreground hidden md:table-cell">{formatMoney(cb.avgPerTransaction, language)}</TableCell>
                                 <TableCell className="text-right text-muted-foreground">{cb.percentage.toFixed(1)}%</TableCell>
                               </TableRow>
                             )
@@ -435,11 +440,11 @@ export default function DashboardPage() {
                             <div className="flex items-center gap-2 min-w-0">
                               <div className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: CATEGORY_COLORS[cat] || '#27272a' }} />
                               <div className="min-w-0">
-                                <p className="text-sm font-medium truncate">{cat}</p>
+                                <p className="text-sm font-medium truncate">{tc(cat)}</p>
                                 <p className="text-xs text-muted-foreground">{cb.count} txn · {cb.percentage.toFixed(1)}%</p>
                               </div>
                             </div>
-                            <span className="text-sm font-medium tabular-nums ml-2">{formatMoney(cb.total)}</span>
+                            <span className="text-sm font-medium tabular-nums ml-2">{formatMoney(cb.total, language)}</span>
                           </div>
                         )
                       })}
@@ -454,8 +459,8 @@ export default function DashboardPage() {
             <div className="px-4 lg:px-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Top Merchants</CardTitle>
-                  <CardDescription>Most frequent and highest spending merchants</CardDescription>
+                  <CardTitle>{t('dashboard.topMerchants')}</CardTitle>
+                  <CardDescription>{t('dashboard.topMerchantsDesc')}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
@@ -464,9 +469,9 @@ export default function DashboardPage() {
                         <span className="text-sm font-medium text-muted-foreground w-8">{i + 1}.</span>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium truncate">{m.merchant}</p>
-                          <p className="text-xs text-muted-foreground">{m.count} transaction{m.count !== 1 ? 's' : ''}</p>
+                          <p className="text-xs text-muted-foreground">{t('dashboard.transactionCount', { count: m.count, plural: m.count !== 1 ? 's' : '' })}</p>
                         </div>
-                        <span className="text-sm font-medium">{formatMoney(m.total)}</span>
+                        <span className="text-sm font-medium">{formatMoney(m.total, language)}</span>
                       </div>
                     ))}
                   </div>
@@ -477,7 +482,7 @@ export default function DashboardPage() {
 
           {data.transactionCount === 0 && (
             <div className="flex flex-col items-center justify-center py-16 text-sm text-muted-foreground">
-              <p>No expenses recorded for this period.</p>
+              <p>{t('dashboard.noExpenses')}</p>
             </div>
           )}
         </>

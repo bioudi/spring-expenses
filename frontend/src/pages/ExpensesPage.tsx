@@ -12,28 +12,13 @@ import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, A
 import { api } from '@/lib/api'
 import { formatMoney, formatDateTime, toLocalDateTimeInput } from '@/lib/formatters'
 import { CATEGORY_COLORS, CATEGORY_GROUPS, PAYMENT_METHODS } from '@/lib/categories'
+import { useI18n } from '@/i18n'
 import { toast } from 'sonner'
 import { toISODate } from '@/lib/formatters'
 import type { ExpenseResponse, ExpenseRequest, RecurrenceFrequency, DayOfWeek } from '@/types'
 
-const FREQUENCIES: { value: RecurrenceFrequency; label: string }[] = [
-  { value: 'DAILY', label: 'Daily' },
-  { value: 'WEEKLY', label: 'Weekly' },
-  { value: 'BI_WEEKLY', label: 'Bi-weekly' },
-  { value: 'MONTHLY', label: 'Monthly' },
-]
-
-const DAYS_OF_WEEK: { value: DayOfWeek; label: string }[] = [
-  { value: 'MONDAY', label: 'Monday' },
-  { value: 'TUESDAY', label: 'Tuesday' },
-  { value: 'WEDNESDAY', label: 'Wednesday' },
-  { value: 'THURSDAY', label: 'Thursday' },
-  { value: 'FRIDAY', label: 'Friday' },
-  { value: 'SATURDAY', label: 'Saturday' },
-  { value: 'SUNDAY', label: 'Sunday' },
-]
-
 export default function ExpensesPage() {
+  const { t, tc, language } = useI18n()
   const [expenses, setExpenses] = useState<ExpenseResponse[]>([])
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<ExpenseResponse | null>(null)
@@ -54,6 +39,23 @@ export default function ExpensesPage() {
   const [cardName, setCardName] = useState('')
   const [timestamp, setTimestamp] = useState('')
   const [notes, setNotes] = useState('')
+
+  const FREQUENCIES: { value: RecurrenceFrequency; label: string }[] = [
+    { value: 'DAILY', label: t('frequency.daily') },
+    { value: 'WEEKLY', label: t('frequency.weekly') },
+    { value: 'BI_WEEKLY', label: t('frequency.biWeekly') },
+    { value: 'MONTHLY', label: t('frequency.monthly') },
+  ]
+
+  const DAYS_OF_WEEK: { value: DayOfWeek; label: string }[] = [
+    { value: 'MONDAY', label: t('frequency.days.MONDAY') },
+    { value: 'TUESDAY', label: t('frequency.days.TUESDAY') },
+    { value: 'WEDNESDAY', label: t('frequency.days.WEDNESDAY') },
+    { value: 'THURSDAY', label: t('frequency.days.THURSDAY') },
+    { value: 'FRIDAY', label: t('frequency.days.FRIDAY') },
+    { value: 'SATURDAY', label: t('frequency.days.SATURDAY') },
+    { value: 'SUNDAY', label: t('frequency.days.SUNDAY') },
+  ]
 
   useEffect(() => {
     loadExpenses()
@@ -106,15 +108,15 @@ export default function ExpensesPage() {
     try {
       if (editing) {
         await api.updateExpense(editing.id, data)
-        toast.success('Expense updated')
+        toast.success(t('expenses.expenseUpdated'))
       } else {
         await api.createExpense(data)
-        toast.success('Expense created')
+        toast.success(t('expenses.expenseCreated'))
       }
       setModalOpen(false)
       loadExpenses()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to save expense')
+      toast.error(err instanceof Error ? err.message : t('expenses.failedToSave'))
     }
   }
 
@@ -124,9 +126,9 @@ export default function ExpensesPage() {
       await api.deleteExpense(deleteTarget.id)
       setDeleteTarget(null)
       loadExpenses()
-      toast.success('Expense deleted')
+      toast.success(t('expenses.expenseDeleted'))
     } catch {
-      toast.error('Failed to delete expense')
+      toast.error(t('expenses.failedToDelete'))
     }
   }
 
@@ -154,9 +156,9 @@ export default function ExpensesPage() {
       })
       setRecurringTarget(null)
       loadExpenses()
-      toast.success('Recurring expense created')
+      toast.success(t('expenses.recurringCreated'))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to create recurring expense')
+      toast.error(err instanceof Error ? err.message : t('expenses.failedRecurring'))
     }
   }
 
@@ -166,23 +168,23 @@ export default function ExpensesPage() {
     <div className="flex flex-1 flex-col gap-4 py-4 md:gap-6 md:py-6">
       <div className="flex items-center justify-between px-4 lg:px-6">
         <div>
-          <h1 className="text-2xl font-semibold">Expenses</h1>
-          <p className="text-muted-foreground text-sm">Manage and track your expenses.</p>
+          <h1 className="text-2xl font-semibold">{t('expenses.title')}</h1>
+          <p className="text-muted-foreground text-sm">{t('expenses.description')}</p>
         </div>
         <Button onClick={openAdd} size="sm">
-          <Plus className="h-4 w-4 mr-2" /> Add Expense
+          <Plus className="h-4 w-4 mr-2" /> {t('expenses.addExpense')}
         </Button>
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">Loading expenses...</div>
+        <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">{t('expenses.loadingExpenses')}</div>
       ) : expenses.length === 0 ? (
         <div className="px-4 lg:px-6">
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-16">
-              <p className="text-sm text-muted-foreground mb-4">No expenses yet.</p>
+              <p className="text-sm text-muted-foreground mb-4">{t('expenses.noExpenses')}</p>
               <Button onClick={openAdd} variant="outline" size="sm">
-                <Plus className="h-4 w-4 mr-2" /> Add your first expense
+                <Plus className="h-4 w-4 mr-2" /> {t('expenses.addFirstExpense')}
               </Button>
             </CardContent>
           </Card>
@@ -195,36 +197,36 @@ export default function ExpensesPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Merchant</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                    <TableHead>Payment</TableHead>
-                    <TableHead>Notes</TableHead>
-                    <TableHead className="text-right w-[100px]">Actions</TableHead>
+                    <TableHead>{t('expenses.date')}</TableHead>
+                    <TableHead>{t('expenses.merchant')}</TableHead>
+                    <TableHead>{t('expenses.category')}</TableHead>
+                    <TableHead className="text-right">{t('expenses.amount')}</TableHead>
+                    <TableHead>{t('expenses.paymentCol')}</TableHead>
+                    <TableHead>{t('expenses.notes')}</TableHead>
+                    <TableHead className="text-right w-[100px]">{t('common.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {expenses.map((exp) => (
                     <TableRow key={exp.id}>
                       <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                        {formatDateTime(exp.timestamp)}
+                        {formatDateTime(exp.timestamp, language)}
                       </TableCell>
                       <TableCell className="font-medium">
                         <span className="inline-flex items-center gap-1.5">
                           {exp.merchant}
-                          {exp.recurringExpenseId && <span title="Recurring"><Repeat className="h-3 w-3 text-muted-foreground" /></span>}
+                          {exp.recurringExpenseId && <span title={t('expenses.makeRecurring')}><Repeat className="h-3 w-3 text-muted-foreground" /></span>}
                         </span>
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className="font-normal">
                           <div className="h-2 w-2 rounded-full mr-1.5 shrink-0" style={{ backgroundColor: CATEGORY_COLORS[exp.category] || '#27272a' }} />
-                          {exp.category}
+                          {tc(exp.category)}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right font-medium">{formatMoney(exp.amount)}</TableCell>
+                      <TableCell className="text-right font-medium">{formatMoney(exp.amount, language)}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">
-                        {exp.paymentMethod}{exp.cardName ? ` · ${exp.cardName}` : ''}
+                        {t(`payment.${exp.paymentMethod}`)}{exp.cardName ? ` · ${exp.cardName}` : ''}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">{exp.notes}</TableCell>
                       <TableCell className="text-right">
@@ -233,7 +235,7 @@ export default function ExpensesPage() {
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
                           {!exp.recurringExpenseId && (
-                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openMakeRecurring(exp)} title="Make Recurring">
+                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openMakeRecurring(exp)} title={t('expenses.makeRecurring')}>
                               <Repeat className="h-3.5 w-3.5" />
                             </Button>
                           )}
@@ -260,17 +262,17 @@ export default function ExpensesPage() {
                         {exp.merchant}
                         {exp.recurringExpenseId && <Repeat className="h-3 w-3 text-muted-foreground" />}
                       </p>
-                      <p className="text-xs text-muted-foreground">{formatDateTime(exp.timestamp)}</p>
+                      <p className="text-xs text-muted-foreground">{formatDateTime(exp.timestamp, language)}</p>
                     </div>
-                    <p className="text-sm font-bold">{formatMoney(exp.amount)}</p>
+                    <p className="text-sm font-bold">{formatMoney(exp.amount, language)}</p>
                   </div>
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2">
                       <Badge variant="outline" className="font-normal text-xs">
                         <div className="h-1.5 w-1.5 rounded-full mr-1 shrink-0" style={{ backgroundColor: CATEGORY_COLORS[exp.category] || '#27272a' }} />
-                        {exp.category}
+                        {tc(exp.category)}
                       </Badge>
-                      <span className="text-xs text-muted-foreground">{exp.paymentMethod}</span>
+                      <span className="text-xs text-muted-foreground">{t(`payment.${exp.paymentMethod}`)}</span>
                     </div>
                     <div className="flex gap-1">
                       <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(exp)}><Pencil className="h-3.5 w-3.5" /></Button>
@@ -292,31 +294,31 @@ export default function ExpensesPage() {
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent onClose={() => setModalOpen(false)}>
           <DialogHeader>
-            <DialogTitle>{editing ? 'Edit Expense' : 'Add Expense'}</DialogTitle>
+            <DialogTitle>{editing ? t('expenses.editExpense') : t('expenses.addExpense')}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Amount</Label>
-                <Input type="number" step="0.01" min="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} required placeholder="0.00" />
+                <Label>{t('expenses.amount')}</Label>
+                <Input type="number" step="0.01" min="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} required placeholder={t('expenses.placeholderAmount')} />
               </div>
               <div className="space-y-2">
-                <Label>Merchant</Label>
-                <Input value={merchant} onChange={(e) => setMerchant(e.target.value)} required placeholder="e.g. Walmart" />
+                <Label>{t('expenses.merchant')}</Label>
+                <Input value={merchant} onChange={(e) => setMerchant(e.target.value)} required placeholder={t('expenses.placeholderMerchant')} />
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Category</Label>
+              <Label>{t('expenses.category')}</Label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
-                <option value="">Auto-detect (AI)</option>
+                <option value="">{t('expenses.autoDetect')}</option>
                 {CATEGORY_GROUPS.map((g) => (
-                  <optgroup key={g.label} label={g.label}>
+                  <optgroup key={g.label} label={t(`categoryGroups.${g.label}`)}>
                     {g.categories.map((c) => (
-                      <option key={c} value={c}>{c}</option>
+                      <option key={c} value={c}>{tc(c)}</option>
                     ))}
                   </optgroup>
                 ))}
@@ -324,35 +326,35 @@ export default function ExpensesPage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Payment Method</Label>
+                <Label>{t('expenses.paymentMethod')}</Label>
                 <select
                   value={paymentMethod}
                   onChange={(e) => setPaymentMethod(e.target.value)}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 >
                   {PAYMENT_METHODS.map((m) => (
-                    <option key={m} value={m}>{m}</option>
+                    <option key={m} value={m}>{t(`payment.${m}`)}</option>
                   ))}
                 </select>
               </div>
               {showCardName && (
                 <div className="space-y-2">
-                  <Label>Card Name</Label>
-                  <Input value={cardName} onChange={(e) => setCardName(e.target.value)} placeholder="e.g. AMEX" />
+                  <Label>{t('expenses.cardName')}</Label>
+                  <Input value={cardName} onChange={(e) => setCardName(e.target.value)} placeholder={t('expenses.placeholderCard')} />
                 </div>
               )}
             </div>
             <div className="space-y-2">
-              <Label>Date & Time</Label>
+              <Label>{t('expenses.dateTime')}</Label>
               <Input type="datetime-local" value={timestamp} onChange={(e) => setTimestamp(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label>Notes</Label>
-              <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional notes..." rows={2} />
+              <Label>{t('expenses.notes')}</Label>
+              <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t('expenses.placeholderNotes')} rows={2} />
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>Cancel</Button>
-              <Button type="submit">{editing ? 'Save changes' : 'Add Expense'}</Button>
+              <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>{t('common.cancel')}</Button>
+              <Button type="submit">{editing ? t('common.saveChanges') : t('expenses.addExpense')}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -362,14 +364,14 @@ export default function ExpensesPage() {
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null) }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogTitle>{t('common.areYouSure')}</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete the {formatMoney(deleteTarget?.amount ?? 0)} expense from {deleteTarget?.merchant}. This action cannot be undone.
+              {t('expenses.deleteConfirm', { amount: formatMoney(deleteTarget?.amount ?? 0, language), merchant: deleteTarget?.merchant ?? '' })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setDeleteTarget(null)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+            <AlertDialogCancel onClick={() => setDeleteTarget(null)}>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{t('common.delete')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -378,15 +380,15 @@ export default function ExpensesPage() {
       <Dialog open={!!recurringTarget} onOpenChange={(open) => { if (!open) setRecurringTarget(null) }}>
         <DialogContent onClose={() => setRecurringTarget(null)}>
           <DialogHeader>
-            <DialogTitle>Make Recurring</DialogTitle>
+            <DialogTitle>{t('expenses.makeRecurring')}</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            Set up {recurringTarget?.merchant} ({formatMoney(recurringTarget?.amount ?? 0)}) as a recurring expense.
+            {t('expenses.makeRecurringDesc', { merchant: recurringTarget?.merchant ?? '', amount: formatMoney(recurringTarget?.amount ?? 0, language) })}
           </p>
           <form onSubmit={handleMakeRecurring} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Frequency</Label>
+                <Label>{t('expenses.frequencyLabel')}</Label>
                 <select
                   value={recFrequency}
                   onChange={(e) => setRecFrequency(e.target.value as RecurrenceFrequency)}
@@ -399,13 +401,13 @@ export default function ExpensesPage() {
               </div>
               {(recFrequency === 'WEEKLY' || recFrequency === 'BI_WEEKLY') && (
                 <div className="space-y-2">
-                  <Label>Day of Week</Label>
+                  <Label>{t('expenses.dayOfWeek')}</Label>
                   <select
                     value={recDayOfWeek}
                     onChange={(e) => setRecDayOfWeek(e.target.value as DayOfWeek)}
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   >
-                    <option value="">Any</option>
+                    <option value="">{t('expenses.any')}</option>
                     {DAYS_OF_WEEK.map((d) => (
                       <option key={d.value} value={d.value}>{d.label}</option>
                     ))}
@@ -414,24 +416,24 @@ export default function ExpensesPage() {
               )}
               {recFrequency === 'MONTHLY' && (
                 <div className="space-y-2">
-                  <Label>Day of Month</Label>
-                  <Input type="number" min="1" max="31" value={recDayOfMonth} onChange={(e) => setRecDayOfMonth(e.target.value)} placeholder="e.g. 15" />
+                  <Label>{t('expenses.dayOfMonth')}</Label>
+                  <Input type="number" min="1" max="31" value={recDayOfMonth} onChange={(e) => setRecDayOfMonth(e.target.value)} placeholder={t('expenses.placeholderDay')} />
                 </div>
               )}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Start Date</Label>
+                <Label>{t('expenses.startDate')}</Label>
                 <Input type="date" value={recStartDate} onChange={(e) => setRecStartDate(e.target.value)} required />
               </div>
               <div className="space-y-2">
-                <Label>End Date (optional)</Label>
+                <Label>{t('expenses.endDateOptional')}</Label>
                 <Input type="date" value={recEndDate} onChange={(e) => setRecEndDate(e.target.value)} />
               </div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setRecurringTarget(null)}>Cancel</Button>
-              <Button type="submit">Create Recurring</Button>
+              <Button type="button" variant="outline" onClick={() => setRecurringTarget(null)}>{t('common.cancel')}</Button>
+              <Button type="submit">{t('expenses.createRecurring')}</Button>
             </DialogFooter>
           </form>
         </DialogContent>

@@ -9,10 +9,12 @@ import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, A
 import { api } from '@/lib/api'
 import { formatDateTime } from '@/lib/formatters'
 import { CATEGORY_COLORS, CATEGORY_GROUPS } from '@/lib/categories'
+import { useI18n } from '@/i18n'
 import { toast } from 'sonner'
 import type { MerchantCategory } from '@/types'
 
 export default function MerchantsPage() {
+  const { t, tc, language } = useI18n()
   const [merchants, setMerchants] = useState<MerchantCategory[]>([])
   const [search, setSearch] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -43,9 +45,9 @@ export default function MerchantsPage() {
       await api.updateMerchant(id, editCategory)
       setEditingId(null)
       loadMerchants()
-      toast.success('Mapping updated')
+      toast.success(t('merchants.mappingUpdated'))
     } catch {
-      toast.error('Failed to update mapping')
+      toast.error(t('merchants.failedUpdate'))
     }
   }
 
@@ -55,9 +57,9 @@ export default function MerchantsPage() {
       await api.deleteMerchant(deleteTarget.id)
       setDeleteTarget(null)
       loadMerchants()
-      toast.success('Mapping deleted')
+      toast.success(t('merchants.mappingDeleted'))
     } catch {
-      toast.error('Failed to delete mapping')
+      toast.error(t('merchants.failedDelete'))
     }
   }
 
@@ -65,9 +67,9 @@ export default function MerchantsPage() {
     <div className="flex flex-1 flex-col gap-4 py-4 md:gap-6 md:py-6">
       <div className="flex items-center justify-between px-4 lg:px-6">
         <div>
-          <h1 className="text-2xl font-semibold">Merchants</h1>
+          <h1 className="text-2xl font-semibold">{t('merchants.title')}</h1>
           <p className="text-muted-foreground text-sm">
-            AI-learned category mappings. {filtered.length} total.
+            {t('merchants.description', { count: filtered.length })}
           </p>
         </div>
       </div>
@@ -76,7 +78,7 @@ export default function MerchantsPage() {
         <div className="relative max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Filter merchants..."
+            placeholder={t('merchants.filterPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
@@ -90,17 +92,17 @@ export default function MerchantsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Merchant</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Learned On</TableHead>
-                <TableHead className="text-right w-[100px]">Actions</TableHead>
+                <TableHead>{t('merchants.merchantCol')}</TableHead>
+                <TableHead>{t('merchants.category')}</TableHead>
+                <TableHead>{t('merchants.learnedOn')}</TableHead>
+                <TableHead className="text-right w-[100px]">{t('common.actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                    {search ? 'No matching merchants found.' : 'No merchant mappings yet.'}
+                    {search ? t('merchants.noMatching') : t('merchants.noMappings')}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -116,9 +118,9 @@ export default function MerchantsPage() {
                             className="h-8 rounded-md border border-input bg-background px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                           >
                             {CATEGORY_GROUPS.map((g) => (
-                              <optgroup key={g.label} label={g.label}>
+                              <optgroup key={g.label} label={t(`categoryGroups.${g.label}`)}>
                                 {g.categories.map((c) => (
-                                  <option key={c} value={c}>{c}</option>
+                                  <option key={c} value={c}>{tc(c)}</option>
                                 ))}
                               </optgroup>
                             ))}
@@ -133,11 +135,11 @@ export default function MerchantsPage() {
                       ) : (
                         <Badge variant="outline" className="font-normal">
                           <div className="h-2 w-2 rounded-full mr-1.5 shrink-0" style={{ backgroundColor: CATEGORY_COLORS[m.category] || '#27272a' }} />
-                          {m.category}
+                          {tc(m.category)}
                         </Badge>
                       )}
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{formatDateTime(m.createdAt)}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{formatDateTime(m.createdAt, language)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
                         <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => startEdit(m)}>
@@ -163,7 +165,7 @@ export default function MerchantsPage() {
             <CardContent className="p-4">
               <div className="flex justify-between items-start mb-2">
                 <span className="font-mono text-sm">{m.merchantKey}</span>
-                <span className="text-xs text-muted-foreground">{formatDateTime(m.createdAt)}</span>
+                <span className="text-xs text-muted-foreground">{formatDateTime(m.createdAt, language)}</span>
               </div>
               {editingId === m.id ? (
                 <div className="flex items-center gap-2 mt-2">
@@ -173,9 +175,9 @@ export default function MerchantsPage() {
                     className="h-8 rounded-md border border-input bg-background px-2 text-sm flex-1"
                   >
                     {CATEGORY_GROUPS.map((g) => (
-                      <optgroup key={g.label} label={g.label}>
+                      <optgroup key={g.label} label={t(`categoryGroups.${g.label}`)}>
                         {g.categories.map((c) => (
-                          <option key={c} value={c}>{c}</option>
+                          <option key={c} value={c}>{tc(c)}</option>
                         ))}
                       </optgroup>
                     ))}
@@ -187,7 +189,7 @@ export default function MerchantsPage() {
                 <div className="flex justify-between items-center mt-2">
                   <Badge variant="outline" className="font-normal">
                     <div className="h-2 w-2 rounded-full mr-1.5 shrink-0" style={{ backgroundColor: CATEGORY_COLORS[m.category] || '#27272a' }} />
-                    {m.category}
+                    {tc(m.category)}
                   </Badge>
                   <div className="flex gap-1">
                     <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => startEdit(m)}><Pencil className="h-3.5 w-3.5" /></Button>
@@ -200,7 +202,7 @@ export default function MerchantsPage() {
         ))}
         {filtered.length === 0 && (
           <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">
-            {search ? 'No matching merchants found.' : 'No merchant mappings yet.'}
+            {search ? t('merchants.noMatching') : t('merchants.noMappings')}
           </div>
         )}
       </div>
@@ -208,14 +210,14 @@ export default function MerchantsPage() {
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null) }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogTitle>{t('common.areYouSure')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Remove the mapping for &ldquo;{deleteTarget?.merchantKey}&rdquo;. The next time this merchant appears, it will be re-categorized by AI.
+              {t('merchants.deleteConfirm', { merchant: deleteTarget?.merchantKey ?? '' })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setDeleteTarget(null)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+            <AlertDialogCancel onClick={() => setDeleteTarget(null)}>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{t('common.delete')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

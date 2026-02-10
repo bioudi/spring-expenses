@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'sonner'
 import { ThemeProvider } from '@/components/theme-provider'
+import { I18nProvider } from '@/i18n'
 import AppLayout from '@/components/layout/AppLayout'
 import LoginPage from '@/pages/LoginPage'
 import RegisterPage from '@/pages/RegisterPage'
@@ -14,6 +15,7 @@ import BudgetsPage from '@/pages/BudgetsPage'
 export default function App() {
   return (
     <ThemeProvider defaultTheme="light" storageKey="ui-theme">
+      <I18nProvider>
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
@@ -33,6 +35,7 @@ export default function App() {
           richColors
         />
       </BrowserRouter>
+      </I18nProvider>
     </ThemeProvider>
   )
 }

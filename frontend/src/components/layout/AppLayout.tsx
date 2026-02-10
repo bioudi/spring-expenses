@@ -1,11 +1,13 @@
 import { Outlet, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
+import { useI18n } from '@/i18n'
 import NavBar from './NavBar'
 
 export default function AppLayout() {
   const navigate = useNavigate()
   const [ready, setReady] = useState(false)
+  const { t } = useI18n()
 
   useEffect(() => {
     api.getProfile()
@@ -16,7 +18,7 @@ export default function AppLayout() {
   if (!ready) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-sm text-muted-foreground">Loading...</div>
+        <div className="text-sm text-muted-foreground">{t('common.loading')}</div>
       </div>
     )
   }

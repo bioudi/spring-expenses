@@ -6,8 +6,10 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Wallet } from 'lucide-react'
 import { api } from '@/lib/api'
+import { useI18n } from '@/i18n'
 
 export default function RegisterPage() {
+  const { t } = useI18n()
   const navigate = useNavigate()
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -23,12 +25,12 @@ export default function RegisterPage() {
     const confirmPassword = form.get('confirmPassword') as string
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match')
+      setError(t('register.passwordsNoMatch'))
       return
     }
 
     if (password.length < 8) {
-      setError('Password must be at least 8 characters')
+      setError(t('register.passwordMinLength'))
       return
     }
 
@@ -38,7 +40,7 @@ export default function RegisterPage() {
       await api.register({ email, password, displayName })
       navigate('/login?registered=true')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Registration failed')
+      setError(err instanceof Error ? err.message : t('register.registrationFailed'))
     } finally {
       setLoading(false)
     }
@@ -52,9 +54,9 @@ export default function RegisterPage() {
             <div className="p-6 md:p-8">
               <div className="flex flex-col gap-6">
                 <div className="flex flex-col items-center text-center">
-                  <h1 className="text-2xl font-bold">Create an account</h1>
+                  <h1 className="text-2xl font-bold">{t('register.createAccount')}</h1>
                   <p className="text-muted-foreground text-balance">
-                    Enter your details to get started
+                    {t('register.enterDetails')}
                   </p>
                 </div>
 
@@ -67,26 +69,26 @@ export default function RegisterPage() {
                 <form onSubmit={handleSubmit}>
                   <div className="flex flex-col gap-6">
                     <div className="grid gap-3">
-                      <Label htmlFor="email">Email</Label>
+                      <Label htmlFor="email">{t('register.email')}</Label>
                       <Input
                         id="email"
                         name="email"
                         type="email"
                         required
                         autoFocus
-                        placeholder="you@example.com"
+                        placeholder={t('register.placeholderEmail')}
                       />
                     </div>
                     <div className="grid gap-3">
-                      <Label htmlFor="displayName">Display Name</Label>
+                      <Label htmlFor="displayName">{t('register.displayName')}</Label>
                       <Input
                         id="displayName"
                         name="displayName"
-                        placeholder="Your name (optional)"
+                        placeholder={t('register.placeholderName')}
                       />
                     </div>
                     <div className="grid gap-3">
-                      <Label htmlFor="password">Password</Label>
+                      <Label htmlFor="password">{t('register.password')}</Label>
                       <Input
                         id="password"
                         name="password"
@@ -95,11 +97,11 @@ export default function RegisterPage() {
                         minLength={8}
                       />
                       <p className="text-xs text-muted-foreground">
-                        Must be at least 8 characters
+                        {t('register.passwordHint')}
                       </p>
                     </div>
                     <div className="grid gap-3">
-                      <Label htmlFor="confirmPassword">Confirm Password</Label>
+                      <Label htmlFor="confirmPassword">{t('register.confirmPassword')}</Label>
                       <Input
                         id="confirmPassword"
                         name="confirmPassword"
@@ -108,18 +110,18 @@ export default function RegisterPage() {
                       />
                     </div>
                     <Button type="submit" className="w-full" disabled={loading}>
-                      {loading ? 'Creating Account...' : 'Create Account'}
+                      {loading ? t('register.creatingAccount') : t('register.createAccountBtn')}
                     </Button>
                   </div>
                 </form>
 
                 <div className="text-center text-sm">
-                  Already have an account?{' '}
+                  {t('register.alreadyHaveAccount')}{' '}
                   <Link
                     to="/login"
                     className="underline underline-offset-4 hover:text-primary"
                   >
-                    Sign in
+                    {t('register.signIn')}
                   </Link>
                 </div>
               </div>

@@ -11,6 +11,7 @@ import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, A
 import { api } from '@/lib/api'
 import { formatMoney } from '@/lib/formatters'
 import { CATEGORY_COLORS, CATEGORY_GROUPS } from '@/lib/categories'
+import { useI18n } from '@/i18n'
 import { toast } from 'sonner'
 import type { BudgetResponse, BudgetRequest } from '@/types'
 
@@ -20,12 +21,8 @@ function progressColor(percent: number): string {
   return '#22c55e'
 }
 
-function formatCategories(categories: string[]): string {
-  if (categories.length <= 2) return categories.join(', ')
-  return `${categories[0]} + ${categories.length - 1} more`
-}
-
 export default function BudgetsPage() {
+  const { t, tc, language } = useI18n()
   const [budgets, setBudgets] = useState<BudgetResponse[]>([])
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<BudgetResponse | null>(null)
@@ -35,13 +32,18 @@ export default function BudgetsPage() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [monthlyLimit, setMonthlyLimit] = useState('')
 
+  function formatCategories(categories: string[]): string {
+    if (categories.length <= 2) return categories.map(c => tc(c)).join(', ')
+    return t('budgets.plusMore', { first: tc(categories[0]), count: categories.length - 1 })
+  }
+
   const loadBudgets = async () => {
     setLoading(true)
     try {
       const data = await api.getBudgets()
       setBudgets(data)
     } catch {
-      toast.error('Failed to load budgets')
+      toast.error(t('budgets.failedLoad'))
     }
     setLoading(false)
   }
@@ -72,7 +74,7 @@ export default function BudgetsPage() {
     e.preventDefault()
 
     if (selectedCategories.length === 0) {
-      toast.error('Select at least one category')
+      toast.error(t('budgets.selectAtLeastOne'))
       return
     }
 
@@ -84,15 +86,15 @@ export default function BudgetsPage() {
     try {
       if (editing) {
         await api.updateBudget(editing.id, data)
-        toast.success('Budget updated')
+        toast.success(t('budgets.updated'))
       } else {
         await api.createBudget(data)
-        toast.success('Budget created')
+        toast.success(t('budgets.created'))
       }
       setModalOpen(false)
       loadBudgets()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to save')
+      toast.error(err instanceof Error ? err.message : t('budgets.failedToSave'))
     }
   }
 
@@ -102,9 +104,9 @@ export default function BudgetsPage() {
       await api.deleteBudget(deleteTarget.id)
       setDeleteTarget(null)
       loadBudgets()
-      toast.success('Budget deleted')
+      toast.success(t('budgets.deleted'))
     } catch {
-      toast.error('Failed to delete')
+      toast.error(t('budgets.failedDelete'))
     }
   }
 
@@ -112,23 +114,23 @@ export default function BudgetsPage() {
     <div className="flex flex-1 flex-col gap-4 py-4 md:gap-6 md:py-6">
       <div className="flex items-center justify-between px-4 lg:px-6">
         <div>
-          <h1 className="text-2xl font-semibold">Budgets</h1>
-          <p className="text-muted-foreground text-sm">Set monthly spending limits for one or more categories.</p>
+          <h1 className="text-2xl font-semibold">{t('budgets.title')}</h1>
+          <p className="text-muted-foreground text-sm">{t('budgets.description')}</p>
         </div>
         <Button onClick={openAdd} size="sm">
-          <Plus className="h-4 w-4 mr-2" /> Add Budget
+          <Plus className="h-4 w-4 mr-2" /> {t('budgets.addBudget')}
         </Button>
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">Loading...</div>
+        <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">{t('common.loading')}</div>
       ) : budgets.length === 0 ? (
         <div className="px-4 lg:px-6">
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-16">
-              <p className="text-sm text-muted-foreground mb-4">No budgets set yet.</p>
+              <p className="text-sm text-muted-foreground mb-4">{t('budgets.noBudgets')}</p>
               <Button onClick={openAdd} variant="outline" size="sm">
-                <Plus className="h-4 w-4 mr-2" /> Add your first budget
+                <Plus className="h-4 w-4 mr-2" /> {t('budgets.addFirstBudget')}
               </Button>
             </CardContent>
           </Card>
@@ -141,12 +143,12 @@ export default function BudgetsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Categories</TableHead>
-                    <TableHead className="text-right">Monthly Limit</TableHead>
-                    <TableHead className="text-right">Spent</TableHead>
-                    <TableHead className="text-right">Remaining</TableHead>
-                    <TableHead className="w-[180px]">Usage</TableHead>
-                    <TableHead className="text-right w-[100px]">Actions</TableHead>
+                    <TableHead>{t('budgets.categoriesCol')}</TableHead>
+                    <TableHead className="text-right">{t('budgets.monthlyLimit')}</TableHead>
+                    <TableHead className="text-right">{t('budgets.spent')}</TableHead>
+                    <TableHead className="text-right">{t('budgets.remaining')}</TableHead>
+                    <TableHead className="w-[180px]">{t('budgets.usage')}</TableHead>
+                    <TableHead className="text-right w-[100px]">{t('common.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -157,15 +159,15 @@ export default function BudgetsPage() {
                           {budget.categories.map((cat) => (
                             <Badge key={cat} variant="outline" className="font-normal">
                               <div className="h-2 w-2 rounded-full mr-1.5 shrink-0" style={{ backgroundColor: CATEGORY_COLORS[cat] || '#27272a' }} />
-                              {cat}
+                              {tc(cat)}
                             </Badge>
                           ))}
                         </div>
                       </TableCell>
-                      <TableCell className="text-right font-medium">{formatMoney(budget.monthlyLimit)}</TableCell>
-                      <TableCell className="text-right font-medium">{formatMoney(budget.spent)}</TableCell>
+                      <TableCell className="text-right font-medium">{formatMoney(budget.monthlyLimit, language)}</TableCell>
+                      <TableCell className="text-right font-medium">{formatMoney(budget.spent, language)}</TableCell>
                       <TableCell className={`text-right font-medium ${budget.remaining < 0 ? 'text-red-500' : ''}`}>
-                        {formatMoney(budget.remaining)}
+                        {formatMoney(budget.remaining, language)}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -183,10 +185,10 @@ export default function BudgetsPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
-                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(budget)} title="Edit">
+                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(budget)}>
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
-                          <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => setDeleteTarget(budget)} title="Delete">
+                          <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => setDeleteTarget(budget)}>
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>
@@ -208,7 +210,7 @@ export default function BudgetsPage() {
                       {budget.categories.map((cat) => (
                         <Badge key={cat} variant="outline" className="font-normal text-xs">
                           <div className="h-1.5 w-1.5 rounded-full mr-1 shrink-0" style={{ backgroundColor: CATEGORY_COLORS[cat] || '#27272a' }} />
-                          {cat}
+                          {tc(cat)}
                         </Badge>
                       ))}
                     </div>
@@ -218,8 +220,8 @@ export default function BudgetsPage() {
                     </div>
                   </div>
                   <div className="flex justify-between text-sm mb-2">
-                    <span className="text-muted-foreground">{formatMoney(budget.spent)} / {formatMoney(budget.monthlyLimit)}</span>
-                    <span className={`font-medium ${budget.remaining < 0 ? 'text-red-500' : ''}`}>{formatMoney(budget.remaining)} left</span>
+                    <span className="text-muted-foreground">{formatMoney(budget.spent, language)} / {formatMoney(budget.monthlyLimit, language)}</span>
+                    <span className={`font-medium ${budget.remaining < 0 ? 'text-red-500' : ''}`}>{formatMoney(budget.remaining, language)} {t('budgets.left')}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
@@ -244,15 +246,15 @@ export default function BudgetsPage() {
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent onClose={() => setModalOpen(false)}>
           <DialogHeader>
-            <DialogTitle>{editing ? 'Edit Budget' : 'Add Budget'}</DialogTitle>
+            <DialogTitle>{editing ? t('budgets.editBudget') : t('budgets.addBudgetTitle')}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label>Categories {selectedCategories.length > 0 && <span className="text-muted-foreground font-normal">({selectedCategories.length} selected)</span>}</Label>
+              <Label>{t('budgets.categoriesCol')} {selectedCategories.length > 0 && <span className="text-muted-foreground font-normal">{t('budgets.categoriesSelected', { count: selectedCategories.length })}</span>}</Label>
               <div className="max-h-[240px] overflow-y-auto rounded-md border border-input p-3 space-y-3">
                 {CATEGORY_GROUPS.map((g) => (
                   <div key={g.label}>
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">{g.label}</p>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">{t(`categoryGroups.${g.label}`)}</p>
                     <div className="flex flex-wrap gap-1.5">
                       {g.categories.map((cat) => {
                         const selected = selectedCategories.includes(cat)
@@ -268,7 +270,7 @@ export default function BudgetsPage() {
                             }`}
                           >
                             <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: CATEGORY_COLORS[cat] || '#27272a' }} />
-                            {cat}
+                            {tc(cat)}
                           </button>
                         )
                       })}
@@ -278,12 +280,12 @@ export default function BudgetsPage() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Monthly Limit</Label>
+              <Label>{t('budgets.monthlyLimit')}</Label>
               <Input type="number" step="0.01" min="0.01" value={monthlyLimit} onChange={(e) => setMonthlyLimit(e.target.value)} required placeholder="0.00" />
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>Cancel</Button>
-              <Button type="submit" disabled={selectedCategories.length === 0}>{editing ? 'Save changes' : 'Add Budget'}</Button>
+              <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>{t('common.cancel')}</Button>
+              <Button type="submit" disabled={selectedCategories.length === 0}>{editing ? t('common.saveChanges') : t('budgets.addBudget')}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -293,14 +295,14 @@ export default function BudgetsPage() {
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null) }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogTitle>{t('common.areYouSure')}</AlertDialogTitle>
             <AlertDialogDescription>
-              This will delete the budget for {formatCategories(deleteTarget?.categories ?? [])} ({formatMoney(deleteTarget?.monthlyLimit ?? 0)}/month).
+              {t('budgets.deleteConfirm', { categories: formatCategories(deleteTarget?.categories ?? []), amount: formatMoney(deleteTarget?.monthlyLimit ?? 0, language) })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setDeleteTarget(null)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+            <AlertDialogCancel onClick={() => setDeleteTarget(null)}>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{t('common.delete')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

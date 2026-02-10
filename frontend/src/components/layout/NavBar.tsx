@@ -1,23 +1,25 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, Receipt, Store, Settings, LogOut, Wallet, Moon, Sun, Menu, X, Repeat, Target } from 'lucide-react'
+import { LayoutDashboard, Receipt, Store, Settings, LogOut, Wallet, Moon, Sun, Menu, X, Repeat, Target, Globe } from 'lucide-react'
 import { useTheme } from '@/components/theme-provider'
+import { useI18n } from '@/i18n'
 import { Button } from '@/components/ui/button'
 import { useState, useEffect } from 'react'
 
-const navItems = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/expenses', label: 'Expenses', icon: Receipt },
-  { to: '/recurring', label: 'Recurring', icon: Repeat },
-  { to: '/budgets', label: 'Budgets', icon: Target },
-  { to: '/merchants', label: 'Merchants', icon: Store },
-  { to: '/settings', label: 'Settings', icon: Settings },
-]
-
 export default function NavBar() {
   const { theme, setTheme } = useTheme()
+  const { t, language, setLanguage } = useI18n()
   const [mobileOpen, setMobileOpen] = useState(false)
   const location = useLocation()
+
+  const navItems = [
+    { to: '/', label: t('nav.dashboard'), icon: LayoutDashboard },
+    { to: '/expenses', label: t('nav.expenses'), icon: Receipt },
+    { to: '/recurring', label: t('nav.recurring'), icon: Repeat },
+    { to: '/budgets', label: t('nav.budgets'), icon: Target },
+    { to: '/merchants', label: t('nav.merchants'), icon: Store },
+    { to: '/settings', label: t('nav.settings'), icon: Settings },
+  ]
 
   // Close mobile nav on route change
   useEffect(() => {
@@ -40,6 +42,10 @@ export default function NavBar() {
     } else {
       setTheme('dark')
     }
+  }
+
+  function toggleLanguage() {
+    setLanguage(language === 'en' ? 'fr' : 'en')
   }
 
   function handleLogout() {
@@ -90,18 +96,26 @@ export default function NavBar() {
       <div className="border-t p-2 space-y-1">
         <Button
           variant="ghost"
+          onClick={toggleLanguage}
+          className="flex w-full items-center gap-3 justify-start px-3 py-2 h-auto text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+        >
+          <Globe className="h-4 w-4" />
+          {language === 'en' ? 'Français' : 'English'}
+        </Button>
+        <Button
+          variant="ghost"
           onClick={toggleTheme}
           className="flex w-full items-center gap-3 justify-start px-3 py-2 h-auto text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
         >
           {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          {isDark ? 'Light Mode' : 'Dark Mode'}
+          {isDark ? t('nav.lightMode') : t('nav.darkMode')}
         </Button>
         <button
           onClick={handleLogout}
           className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
         >
           <LogOut className="h-4 w-4" />
-          Logout
+          {t('nav.logout')}
         </button>
       </div>
     </>
