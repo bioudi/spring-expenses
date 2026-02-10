@@ -1,5 +1,8 @@
 package com.expensetracker.service;
 
+import com.anthropic.models.messages.Message;
+import com.anthropic.models.messages.MessageCreateParams;
+import com.anthropic.models.messages.Model;
 import com.expensetracker.dto.DashboardResponse;
 import com.expensetracker.dto.DashboardResponse.CategoryBreakdown;
 import com.expensetracker.dto.DashboardResponse.DailySpending;
@@ -29,6 +32,7 @@ public class MonthlyInsightsService {
     private final ExpenseService expenseService;
     private final EmailService emailService;
     private final UserRepository userRepository;
+    private final AnthropicClientService anthropicClientService;
 
     @Value("${insights.email.enabled:true}")
     private boolean emailEnabled;
@@ -117,8 +121,10 @@ public class MonthlyInsightsService {
                 DashboardResponse previousDashboard = expenseService.getDashboard(previousMonthDate, user.getId());
                 PeriodSummary previousMonth = previousDashboard.getMonth();
 
+                String narrative = generateNarrative(currentMonth, previousMonth, monthName);
+
                 String subject = "Your Expense Insights \u2014 " + monthName;
-                String htmlBody = buildEmailHtml(currentMonth, previousMonth, monthName);
+                String htmlBody = buildEmailHtml(currentMonth, previousMonth, monthName, narrative);
 
                 emailService.sendHtmlEmail(new String[]{user.getEmail()}, subject, htmlBody);
                 log.info("Monthly insights email sent successfully for user '{}' ({})", user.getEmail(), monthName);
@@ -129,7 +135,7 @@ public class MonthlyInsightsService {
         }
     }
 
-    private String buildEmailHtml(PeriodSummary current, PeriodSummary previous, String monthName) {
+    private String buildEmailHtml(PeriodSummary current, PeriodSummary previous, String monthName, String narrative) {
         StringBuilder html = new StringBuilder();
 
         BigDecimal totalSpent = current.getTotalSpent();
@@ -226,6 +232,15 @@ public class MonthlyInsightsService {
             html.append(arrow).append(" ").append(diffPercentage).append("% ").append(verb);
             html.append(" <span style='color:").append(FG_MUTED).append(";font-size:13px;font-weight:400;'>($").append(fmt(monthDiff.abs())).append(")</span>");
             html.append("</p>");
+            html.append("</div></div>");
+        }
+
+        // AI Insights narrative card
+        if (narrative != null && !narrative.isBlank()) {
+            html.append("<div style='padding:0 24px;margin-bottom:16px;'>");
+            html.append("<div style='background-color:").append(BG_CARD).append(";border:1px solid ").append(BORDER).append(";border-left:4px solid #3b82f6;border-radius:").append(RADIUS).append(";padding:16px 20px;'>");
+            html.append("<p style='color:#3b82f6;margin:0;font-size:13px;font-weight:600;'>AI Insights</p>");
+            html.append("<p style='color:").append(FG).append(";margin:8px 0 0 0;font-size:13px;line-height:1.5;'>").append(esc(narrative)).append("</p>");
             html.append("</div></div>");
         }
 
@@ -341,5 +356,62 @@ public class MonthlyInsightsService {
     private String esc(String val) {
         if (val == null) return "";
         return val.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+    }
+
+    private String generateNarrative(PeriodSummary current, PeriodSummary previous, String monthName) {
+        if (!anthropicClientService.isAvailable()) {
+            log.debug("Skipping AI narrative — Anthropic client not available");
+            return null;
+        }
+
+        try {
+            StringBuilder prompt = new StringBuilder();
+            prompt.append("Month: ").append(monthName).append("\n");
+            prompt.append("Total spent: $").append(fmt(current.getTotalSpent())).append("\n");
+            prompt.append("Transaction count: ").append(current.getTransactionCount()).append("\n");
+
+            // Top 5 categories
+            if (current.getCategoryBreakdown() != null && !current.getCategoryBreakdown().isEmpty()) {
+                prompt.append("Top categories:\n");
+                current.getCategoryBreakdown().entrySet().stream()
+                        .sorted(Map.Entry.<String, CategoryBreakdown>comparingByValue(
+                                Comparator.comparing(CategoryBreakdown::getTotal)).reversed())
+                        .limit(5)
+                        .forEach(e -> prompt.append("  - ").append(e.getKey())
+                                .append(": $").append(fmt(e.getValue().getTotal()))
+                                .append(" (").append(e.getValue().getCount()).append(" txns)\n"));
+            }
+
+            // Top 3 merchants
+            if (current.getTopMerchants() != null && !current.getTopMerchants().isEmpty()) {
+                prompt.append("Top merchants:\n");
+                current.getTopMerchants().stream().limit(3)
+                        .forEach(m -> prompt.append("  - ").append(m.getMerchant())
+                                .append(": $").append(fmt(m.getTotal()))
+                                .append(" (").append(m.getCount()).append(" txns)\n"));
+            }
+
+            // Month-over-month
+            if (previous != null && previous.getTotalSpent().compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal diff = current.getTotalSpent().subtract(previous.getTotalSpent());
+                String direction = diff.compareTo(BigDecimal.ZERO) > 0 ? "more" : "less";
+                prompt.append("vs. previous month: $").append(fmt(diff.abs())).append(" ").append(direction).append("\n");
+            }
+
+            MessageCreateParams params = MessageCreateParams.builder()
+                    .model(Model.CLAUDE_HAIKU_4_5_20251001)
+                    .maxTokens(200L)
+                    .system("You are a financial advisor. Given spending stats, write 2-3 concise sentences highlighting patterns and changes. Be conversational. Focus on what changed and what's notable. Do not use markdown formatting.")
+                    .addUserMessage(prompt.toString())
+                    .build();
+
+            Message message = anthropicClientService.getClient().messages().create(params);
+            String narrative = message.content().get(0).asText().text().trim();
+            log.info("AI narrative generated for {}", monthName);
+            return narrative;
+        } catch (Exception e) {
+            log.error("Failed to generate AI narrative: {} - {}", e.getClass().getSimpleName(), e.getMessage());
+            return null;
+        }
     }
 }

@@ -10,6 +10,7 @@ import type {
   RecurringExpenseResponse,
   BudgetRequest,
   BudgetResponse,
+  BudgetSuggestionResponse,
 } from '@/types'
 
 class ApiError extends Error {
@@ -92,4 +93,6 @@ export const api = {
     apiFetch<BudgetResponse>(`/api/budgets/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteBudget: (id: string) =>
     apiFetch<void>(`/api/budgets/${id}`, { method: 'DELETE' }),
+  getBudgetSuggestions: () =>
+    apiFetch<BudgetSuggestionResponse[]>('/api/budgets/suggestions'),
 }

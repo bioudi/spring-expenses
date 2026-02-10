@@ -121,6 +121,12 @@ export interface BudgetResponse {
   updatedAt: string
 }
 
+export interface BudgetSuggestionResponse {
+  categories: string[]
+  suggestedLimit: number
+  reasoning: string
+}
+
 export interface RecurringExpenseResponse {
   id: string
   amount: number

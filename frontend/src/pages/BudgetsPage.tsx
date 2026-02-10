@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { Plus, Pencil, Trash2, Sparkles, X } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -13,7 +13,7 @@ import { formatMoney } from '@/lib/formatters'
 import { CATEGORY_COLORS, CATEGORY_GROUPS } from '@/lib/categories'
 import { useI18n } from '@/i18n'
 import { toast } from 'sonner'
-import type { BudgetResponse, BudgetRequest } from '@/types'
+import type { BudgetResponse, BudgetRequest, BudgetSuggestionResponse } from '@/types'
 
 function progressColor(percent: number): string {
   if (percent >= 100) return '#ef4444'
@@ -31,6 +31,8 @@ export default function BudgetsPage() {
 
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [monthlyLimit, setMonthlyLimit] = useState('')
+  const [suggestions, setSuggestions] = useState<BudgetSuggestionResponse[] | null>(null)
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false)
 
   function formatCategories(categories: string[]): string {
     if (categories.length <= 2) return categories.map(c => tc(c)).join(', ')
@@ -110,6 +112,24 @@ export default function BudgetsPage() {
     }
   }
 
+  async function loadSuggestions() {
+    setSuggestionsLoading(true)
+    try {
+      const data = await api.getBudgetSuggestions()
+      setSuggestions(data)
+    } catch {
+      toast.error(t('budgets.failedSuggestions'))
+    }
+    setSuggestionsLoading(false)
+  }
+
+  function applySuggestion(suggestion: BudgetSuggestionResponse) {
+    setEditing(null)
+    setSelectedCategories([...suggestion.categories])
+    setMonthlyLimit(String(suggestion.suggestedLimit))
+    setModalOpen(true)
+  }
+
   return (
     <div className="flex flex-1 flex-col gap-4 py-4 md:gap-6 md:py-6">
       <div className="flex items-center justify-between px-4 lg:px-6">
@@ -117,10 +137,66 @@ export default function BudgetsPage() {
           <h1 className="text-2xl font-semibold">{t('budgets.title')}</h1>
           <p className="text-muted-foreground text-sm">{t('budgets.description')}</p>
         </div>
-        <Button onClick={openAdd} size="sm">
-          <Plus className="h-4 w-4 mr-2" /> {t('budgets.addBudget')}
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={loadSuggestions} size="sm" variant="outline" disabled={suggestionsLoading}>
+            <Sparkles className="h-4 w-4 mr-2" /> {t('budgets.aiSuggestions')}
+          </Button>
+          <Button onClick={openAdd} size="sm">
+            <Plus className="h-4 w-4 mr-2" /> {t('budgets.addBudget')}
+          </Button>
+        </div>
       </div>
+
+      {/* AI Suggestions */}
+      {suggestionsLoading && (
+        <div className="flex items-center justify-center py-8 text-sm text-muted-foreground px-4 lg:px-6">
+          <Sparkles className="h-4 w-4 mr-2 animate-pulse" />
+          {t('budgets.loadingSuggestions')}
+        </div>
+      )}
+
+      {suggestions !== null && !suggestionsLoading && (
+        <div className="px-4 lg:px-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-blue-500" />
+              {t('budgets.aiSuggestions')}
+            </h2>
+            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSuggestions(null)}>
+              <X className="h-3.5 w-3.5 mr-1" /> {t('budgets.dismissSuggestions')}
+            </Button>
+          </div>
+          {suggestions.length === 0 ? (
+            <Card>
+              <CardContent className="py-6 text-center text-sm text-muted-foreground">
+                {t('budgets.noSuggestions')}
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {suggestions.map((s, i) => (
+                <Card key={i}>
+                  <CardContent className="p-4 space-y-3">
+                    <div className="flex flex-wrap gap-1">
+                      {s.categories.map((cat) => (
+                        <Badge key={cat} variant="outline" className="font-normal text-xs">
+                          <div className="h-2 w-2 rounded-full mr-1.5 shrink-0" style={{ backgroundColor: CATEGORY_COLORS[cat] || '#27272a' }} />
+                          {tc(cat)}
+                        </Badge>
+                      ))}
+                    </div>
+                    <p className="text-lg font-semibold">${s.suggestedLimit.toFixed(2)}<span className="text-xs text-muted-foreground font-normal">/mo</span></p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{s.reasoning}</p>
+                    <Button size="sm" className="w-full" onClick={() => applySuggestion(s)}>
+                      {t('budgets.createFromSuggestion')}
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">{t('common.loading')}</div>

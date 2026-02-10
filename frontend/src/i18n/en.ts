@@ -235,6 +235,13 @@ export const en = {
     deleteConfirm: 'This will delete the budget for {{categories}} ({{amount}}/month).',
     left: 'left',
     plusMore: '{{first}} + {{count}} more',
+    aiSuggestions: 'AI Suggestions',
+    loadingSuggestions: 'Analyzing your spending...',
+    noSuggestions: 'No suggestions available. AI needs at least some spending history on unbudgeted categories.',
+    suggestedLimit: 'Suggested: ${{amount}}/mo',
+    createFromSuggestion: 'Create Budget',
+    dismissSuggestions: 'Dismiss',
+    failedSuggestions: 'Failed to load suggestions',
   },
   merchants: {
     title: 'Merchants',

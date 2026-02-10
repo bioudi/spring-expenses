@@ -2,6 +2,7 @@ package com.expensetracker.controller;
 
 import com.expensetracker.dto.BudgetRequest;
 import com.expensetracker.dto.BudgetResponse;
+import com.expensetracker.dto.BudgetSuggestionResponse;
 import com.expensetracker.service.BudgetService;
 import com.expensetracker.util.SecurityUtils;
 import jakarta.validation.Valid;
@@ -25,6 +26,13 @@ public class BudgetController {
         UUID userId = SecurityUtils.getCurrentUserId();
         List<BudgetResponse> budgets = budgetService.getBudgets(userId);
         return ResponseEntity.ok(budgets);
+    }
+
+    @GetMapping("/suggestions")
+    public ResponseEntity<List<BudgetSuggestionResponse>> getSuggestions() {
+        UUID userId = SecurityUtils.getCurrentUserId();
+        List<BudgetSuggestionResponse> suggestions = budgetService.getSuggestions(userId);
+        return ResponseEntity.ok(suggestions);
     }
 
     @GetMapping("/{id}")

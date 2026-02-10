@@ -235,6 +235,13 @@ export const fr = {
     deleteConfirm: 'Cette action supprimera le budget pour {{categories}} ({{amount}}/mois).',
     left: 'restant',
     plusMore: '{{first}} + {{count}} autre(s)',
+    aiSuggestions: 'Suggestions IA',
+    loadingSuggestions: 'Analyse de vos dépenses...',
+    noSuggestions: 'Aucune suggestion disponible. L\'IA nécessite un historique de dépenses sur des catégories sans budget.',
+    suggestedLimit: 'Suggéré : {{amount}} $/mois',
+    createFromSuggestion: 'Créer un budget',
+    dismissSuggestions: 'Fermer',
+    failedSuggestions: 'Échec du chargement des suggestions',
   },
   merchants: {
     title: 'Marchands',

@@ -1,7 +1,5 @@
 package com.expensetracker.service;
 
-import com.anthropic.client.AnthropicClient;
-import com.anthropic.client.okhttp.AnthropicOkHttpClient;
 import com.anthropic.models.messages.Message;
 import com.anthropic.models.messages.MessageCreateParams;
 import com.anthropic.models.messages.Model;
@@ -12,7 +10,6 @@ import com.expensetracker.repository.MerchantCategoryRepository;
 import jakarta.annotation.PostConstruct;
 import jakarta.persistence.EntityManager;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -24,20 +21,17 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class CategorizationService {
 
-    @Value("${anthropic.api.key:}")
-    private String apiKey;
-
-    private AnthropicClient client;
-
     // Cache key is "userId:merchantKey"
     private final Map<String, String> categoryCache = new ConcurrentHashMap<>();
 
     private final MerchantCategoryRepository merchantCategoryRepository;
     private final EntityManager entityManager;
+    private final AnthropicClientService anthropicClientService;
 
-    public CategorizationService(MerchantCategoryRepository merchantCategoryRepository, EntityManager entityManager) {
+    public CategorizationService(MerchantCategoryRepository merchantCategoryRepository, EntityManager entityManager, AnthropicClientService anthropicClientService) {
         this.merchantCategoryRepository = merchantCategoryRepository;
         this.entityManager = entityManager;
+        this.anthropicClientService = anthropicClientService;
     }
 
     private static final String SYSTEM_PROMPT =
@@ -58,15 +52,6 @@ public class CategorizationService {
 
     @PostConstruct
     void init() {
-        if (apiKey != null && !apiKey.isBlank()) {
-            client = AnthropicOkHttpClient.builder()
-                    .apiKey(apiKey)
-                    .build();
-            log.info("Anthropic client initialized for expense categorization");
-        } else {
-            log.warn("ANTHROPIC_API_KEY not set — AI categorization disabled, expenses without a category will be 'Uncategorized'");
-        }
-
         // Load persistent cache from database with composite key userId:merchantKey
         List<MerchantCategory> mappings = merchantCategoryRepository.findAll();
         for (MerchantCategory mc : mappings) {
@@ -77,7 +62,7 @@ public class CategorizationService {
     }
 
     public String categorize(String merchant, UUID userId) {
-        if (client == null) {
+        if (!anthropicClientService.isAvailable()) {
             log.warn("Skipping AI categorization — Anthropic client not initialized (is ANTHROPIC_API_KEY set?)");
             return null;
         }
@@ -105,7 +90,7 @@ public class CategorizationService {
                     .addUserMessage("Merchant: " + merchant)
                     .build();
 
-            Message message = client.messages().create(params);
+            Message message = anthropicClientService.getClient().messages().create(params);
             String category = message.content().get(0).asText().text().trim();
 
             if (ExpenseCategory.isValid(category)) {
