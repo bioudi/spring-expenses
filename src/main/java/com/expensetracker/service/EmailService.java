@@ -1,39 +1,47 @@
 package com.expensetracker.service;
 
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
-import lombok.RequiredArgsConstructor;
+import com.resend.Resend;
+import com.resend.core.exception.ResendException;
+import com.resend.services.emails.model.CreateEmailOptions;
+import com.resend.services.emails.model.CreateEmailResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class EmailService {
 
-    private final JavaMailSender mailSender;
+    private final Resend resend;
 
-    @Value("${insights.email.from:}")
+    @Value("${resend.from-address:}")
     private String fromAddress;
 
+    public EmailService(@Value("${resend.api-key:}") String apiKey) {
+        this.resend = apiKey.isBlank() ? null : new Resend(apiKey);
+    }
+
     public void sendHtmlEmail(String[] recipients, String subject, String htmlBody) {
-        try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+        if (resend == null) {
+            log.warn("Resend API key not configured. Skipping email: '{}'", subject);
+            return;
+        }
 
-            helper.setFrom(fromAddress);
-            helper.setTo(recipients);
-            helper.setSubject(subject);
-            helper.setText(htmlBody, true);
+        for (String recipient : recipients) {
+            try {
+                CreateEmailOptions params = CreateEmailOptions.builder()
+                        .from(fromAddress)
+                        .to(recipient)
+                        .subject(subject)
+                        .html(htmlBody)
+                        .build();
 
-            mailSender.send(message);
-            log.info("Email sent successfully to {} recipients. Subject: '{}'", recipients.length, subject);
-        } catch (MessagingException e) {
-            log.error("Failed to send email. Subject: '{}', Error: {}", subject, e.getMessage(), e);
-            throw new RuntimeException("Failed to send email", e);
+                CreateEmailResponse response = resend.emails().send(params);
+                log.info("Email sent to '{}'. Subject: '{}', ID: {}", recipient, subject, response.getId());
+            } catch (ResendException e) {
+                log.error("Failed to send email to '{}'. Subject: '{}', Error: {}", recipient, subject, e.getMessage(), e);
+                throw new RuntimeException("Failed to send email to " + recipient, e);
+            }
         }
     }
 }

@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Spendifi — Smart Expense Tracking for Modern Teams & Individuals</title>
+  <meta name="description" content="Track expenses, set smart budgets, and get AI-powered financial insights. Spendifi helps you take control of your spending with zero effort." />
+  <link rel="icon" href="/favicon.ico" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'] },
+          colors: {
+            brand: { 50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 300: '#93c5fd', 400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8', 800: '#1e40af', 900: '#1e3a8a' },
+          },
+        },
+      },
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    html { scroll-behavior: smooth; }
+    .gradient-text { background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .hero-gradient { background: radial-gradient(ellipse 80% 60% at 50% -20%, rgba(59,130,246,0.12) 0%, transparent 70%); }
+    .card-hover { transition: transform 0.2s, box-shadow 0.2s; }
+    .card-hover:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,0.08); }
+    .pricing-popular { box-shadow: 0 0 0 2px #3b82f6, 0 12px 40px rgba(59,130,246,0.15); }
+    @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-8px); } }
+    .float-animation { animation: float 6s ease-in-out infinite; }
+  </style>
+</head>
+<body class="bg-white text-gray-900 font-sans antialiased">
+
+  <!-- Navbar -->
+  <nav class="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-lg border-b border-gray-100 z-50">
+    <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+      <a href="#" class="flex items-center gap-2.5">
+        <div class="h-8 w-8 bg-gray-900 rounded-lg flex items-center justify-center">
+          <span class="text-white font-bold text-sm">S</span>
+        </div>
+        <span class="font-semibold text-[15px] tracking-tight">Spendifi</span>
+      </a>
+      <div class="hidden md:flex items-center gap-8 text-sm text-gray-600">
+        <a href="#features" class="hover:text-gray-900 transition-colors">Features</a>
+        <a href="#how-it-works" class="hover:text-gray-900 transition-colors">How it works</a>
+        <a href="#pricing" class="hover:text-gray-900 transition-colors">Pricing</a>
+      </div>
+      <div class="flex items-center gap-3">
+        <a href="/login" class="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors hidden sm:block">Sign in</a>
+        <a href="/register" class="text-sm font-medium bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors">Get started free</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero-gradient pt-32 pb-20 md:pt-40 md:pb-28">
+    <div class="max-w-6xl mx-auto px-6 text-center">
+      <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 text-blue-700 text-xs font-medium mb-6">
+        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" /></svg>
+        Powered by AI
+      </div>
+      <h1 class="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight leading-[1.1] mb-6 max-w-3xl mx-auto">
+        Expense tracking that <span class="gradient-text">thinks for you</span>
+      </h1>
+      <p class="text-lg md:text-xl text-gray-500 max-w-2xl mx-auto mb-10 leading-relaxed">
+        Spendifi auto-categorizes your spending with AI, suggests smart budgets, and delivers monthly insights straight to your inbox. Zero spreadsheets, zero guesswork.
+      </p>
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+        <a href="/register" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-brand-600 text-white px-7 py-3.5 rounded-xl font-semibold text-sm hover:bg-brand-700 transition-colors shadow-lg shadow-blue-500/20">
+          Start free trial
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+        </a>
+        <a href="#features" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gray-50 text-gray-700 px-7 py-3.5 rounded-xl font-semibold text-sm hover:bg-gray-100 transition-colors border border-gray-200">
+          See how it works
+        </a>
+      </div>
+      <p class="text-xs text-gray-400 mt-4">No credit card required. Free plan available forever.</p>
+
+      <!-- Dashboard mockup -->
+      <div class="mt-16 max-w-4xl mx-auto float-animation">
+        <div class="bg-white rounded-2xl shadow-2xl shadow-gray-200/60 border border-gray-200 overflow-hidden">
+          <!-- Window chrome -->
+          <div class="flex items-center gap-1.5 px-4 py-3 bg-gray-50 border-b border-gray-100">
+            <div class="w-3 h-3 rounded-full bg-red-400"></div>
+            <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
+            <div class="w-3 h-3 rounded-full bg-green-400"></div>
+            <div class="mx-auto text-xs text-gray-400 font-medium">app.spendifi.com</div>
+          </div>
+          <!-- Mock dashboard -->
+          <div class="p-6 md:p-8 bg-gradient-to-b from-gray-50 to-white">
+            <div class="grid grid-cols-3 gap-4 mb-6">
+              <div class="bg-white rounded-xl border border-gray-100 p-4">
+                <p class="text-xs text-gray-400 mb-1">Total Spent</p>
+                <p class="text-2xl font-bold">$2,847<span class="text-sm text-gray-400">.32</span></p>
+                <p class="text-xs text-red-500 mt-1">+12% vs last month</p>
+              </div>
+              <div class="bg-white rounded-xl border border-gray-100 p-4">
+                <p class="text-xs text-gray-400 mb-1">Transactions</p>
+                <p class="text-2xl font-bold">64</p>
+                <p class="text-xs text-gray-400 mt-1">This month</p>
+              </div>
+              <div class="bg-white rounded-xl border border-gray-100 p-4">
+                <p class="text-xs text-gray-400 mb-1">Budget Health</p>
+                <p class="text-2xl font-bold text-green-600">On Track</p>
+                <p class="text-xs text-green-500 mt-1">3 of 4 under limit</p>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div class="bg-white rounded-xl border border-gray-100 p-4">
+                <p class="text-xs font-medium text-gray-500 mb-3">Category Breakdown</p>
+                <div class="space-y-2">
+                  <div class="flex items-center gap-2"><div class="w-2 h-2 rounded-full bg-blue-500"></div><span class="text-xs text-gray-600 flex-1">Groceries</span><span class="text-xs font-medium">$842</span></div>
+                  <div class="flex items-center gap-2"><div class="w-2 h-2 rounded-full bg-orange-500"></div><span class="text-xs text-gray-600 flex-1">Restaurants</span><span class="text-xs font-medium">$456</span></div>
+                  <div class="flex items-center gap-2"><div class="w-2 h-2 rounded-full bg-purple-500"></div><span class="text-xs text-gray-600 flex-1">Transport</span><span class="text-xs font-medium">$312</span></div>
+                  <div class="flex items-center gap-2"><div class="w-2 h-2 rounded-full bg-emerald-500"></div><span class="text-xs text-gray-600 flex-1">Utilities</span><span class="text-xs font-medium">$189</span></div>
+                </div>
+              </div>
+              <div class="bg-white rounded-xl border border-gray-100 p-4">
+                <p class="text-xs font-medium text-gray-500 mb-3">AI Insights</p>
+                <div class="bg-blue-50 border border-blue-100 rounded-lg p-3">
+                  <p class="text-xs text-blue-800 leading-relaxed">Your grocery spending is 18% higher this month, driven by 4 extra trips to Maxi. Restaurant spending dropped 22% &mdash; nice work staying on track!</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Logos / Social proof -->
+  <section class="py-12 border-b border-gray-100">
+    <div class="max-w-6xl mx-auto px-6 text-center">
+      <p class="text-xs font-medium text-gray-400 uppercase tracking-widest mb-6">Trusted by individuals and teams who care about their finances</p>
+      <div class="flex flex-wrap items-center justify-center gap-x-12 gap-y-4 text-gray-300">
+        <div class="flex items-center gap-2 text-gray-400"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg><span class="font-semibold text-sm">1,200+ users</span></div>
+        <div class="flex items-center gap-2 text-gray-400"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span class="font-semibold text-sm">50K+ expenses tracked</span></div>
+        <div class="flex items-center gap-2 text-gray-400"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg><span class="font-semibold text-sm">4.9/5 rating</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section id="features" class="py-20 md:py-28">
+    <div class="max-w-6xl mx-auto px-6">
+      <div class="text-center mb-16">
+        <p class="text-sm font-semibold text-brand-600 mb-2">Features</p>
+        <h2 class="text-3xl md:text-4xl font-extrabold tracking-tight mb-4">Everything you need to master your money</h2>
+        <p class="text-gray-500 max-w-2xl mx-auto">From automatic categorization to AI-powered insights, Spendifi gives you superpowers over your finances.</p>
+      </div>
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Feature 1 -->
+        <div class="card-hover bg-white border border-gray-100 rounded-2xl p-6">
+          <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center mb-4">
+            <svg class="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" /></svg>
+          </div>
+          <h3 class="font-semibold text-lg mb-2">AI Auto-Categorization</h3>
+          <p class="text-gray-500 text-sm leading-relaxed">Add an expense and AI instantly categorizes it. Learns your local merchants &mdash; from Maxi to Tim Hortons &mdash; and gets smarter over time.</p>
+        </div>
+        <!-- Feature 2 -->
+        <div class="card-hover bg-white border border-gray-100 rounded-2xl p-6">
+          <div class="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center mb-4">
+            <svg class="w-5 h-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>
+          </div>
+          <h3 class="font-semibold text-lg mb-2">Smart Budget Suggestions</h3>
+          <p class="text-gray-500 text-sm leading-relaxed">AI analyzes 3 months of spending and recommends personalized budget limits. One click to create &mdash; no guesswork needed.</p>
+        </div>
+        <!-- Feature 3 -->
+        <div class="card-hover bg-white border border-gray-100 rounded-2xl p-6">
+          <div class="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center mb-4">
+            <svg class="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" /></svg>
+          </div>
+          <h3 class="font-semibold text-lg mb-2">Monthly AI Insights Email</h3>
+          <p class="text-gray-500 text-sm leading-relaxed">Get a beautifully designed monthly report with AI-written spending analysis, trends, and personalized recommendations.</p>
+        </div>
+        <!-- Feature 4 -->
+        <div class="card-hover bg-white border border-gray-100 rounded-2xl p-6">
+          <div class="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center mb-4">
+            <svg class="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.678 48.678 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 003.7 3.7 48.656 48.656 0 007.324 0 4.006 4.006 0 003.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3l-3 3" /></svg>
+          </div>
+          <h3 class="font-semibold text-lg mb-2">Recurring Expenses</h3>
+          <p class="text-gray-500 text-sm leading-relaxed">Set up subscriptions, bills, and regular payments once. Spendifi auto-logs them on schedule so you never miss a thing.</p>
+        </div>
+        <!-- Feature 5 -->
+        <div class="card-hover bg-white border border-gray-100 rounded-2xl p-6">
+          <div class="w-10 h-10 bg-rose-50 rounded-xl flex items-center justify-center mb-4">
+            <svg class="w-5 h-5 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          </div>
+          <h3 class="font-semibold text-lg mb-2">Multi-Category Budgets</h3>
+          <p class="text-gray-500 text-sm leading-relaxed">Group related categories into a single budget. Track "Food" as one limit across Groceries, Restaurants, and Coffee.</p>
+        </div>
+        <!-- Feature 6 -->
+        <div class="card-hover bg-white border border-gray-100 rounded-2xl p-6">
+          <div class="w-10 h-10 bg-cyan-50 rounded-xl flex items-center justify-center mb-4">
+            <svg class="w-5 h-5 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 16.875h3.375m0 0h3.375m-3.375 0V13.5m0 3.375v3.375M6 10.5h2.25a2.25 2.25 0 002.25-2.25V6a2.25 2.25 0 00-2.25-2.25H6A2.25 2.25 0 003.75 6v2.25A2.25 2.25 0 006 10.5zm0 9.75h2.25A2.25 2.25 0 0010.5 18v-2.25a2.25 2.25 0 00-2.25-2.25H6a2.25 2.25 0 00-2.25 2.25V18A2.25 2.25 0 006 20.25zm9.75-9.75H18a2.25 2.25 0 002.25-2.25V6A2.25 2.25 0 0018 3.75h-2.25A2.25 2.25 0 0013.5 6v2.25a2.25 2.25 0 002.25 2.25z" /></svg>
+          </div>
+          <h3 class="font-semibold text-lg mb-2">Webhook API</h3>
+          <p class="text-gray-500 text-sm leading-relaxed">Integrate with your bank, Zapier, or custom apps via a simple REST API. Auto-log expenses from any source with your personal API key.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section id="how-it-works" class="py-20 md:py-28 bg-gray-50">
+    <div class="max-w-6xl mx-auto px-6">
+      <div class="text-center mb-16">
+        <p class="text-sm font-semibold text-brand-600 mb-2">How it works</p>
+        <h2 class="text-3xl md:text-4xl font-extrabold tracking-tight mb-4">Up and running in minutes</h2>
+        <p class="text-gray-500 max-w-2xl mx-auto">Three simple steps to financial clarity.</p>
+      </div>
+      <div class="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+        <div class="text-center">
+          <div class="w-14 h-14 bg-brand-600 text-white rounded-2xl flex items-center justify-center text-xl font-bold mx-auto mb-5">1</div>
+          <h3 class="font-semibold text-lg mb-2">Log your expenses</h3>
+          <p class="text-gray-500 text-sm leading-relaxed">Add expenses manually or via the API. Just enter the merchant and amount &mdash; AI handles the category.</p>
+        </div>
+        <div class="text-center">
+          <div class="w-14 h-14 bg-brand-600 text-white rounded-2xl flex items-center justify-center text-xl font-bold mx-auto mb-5">2</div>
+          <h3 class="font-semibold text-lg mb-2">Set smart budgets</h3>
+          <p class="text-gray-500 text-sm leading-relaxed">Use AI suggestions or create your own. Track spending against limits in real time with visual progress bars.</p>
+        </div>
+        <div class="text-center">
+          <div class="w-14 h-14 bg-brand-600 text-white rounded-2xl flex items-center justify-center text-xl font-bold mx-auto mb-5">3</div>
+          <h3 class="font-semibold text-lg mb-2">Get monthly insights</h3>
+          <p class="text-gray-500 text-sm leading-relaxed">Receive AI-powered monthly reports showing trends, comparisons, and actionable advice right in your inbox.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing -->
+  <section id="pricing" class="py-20 md:py-28">
+    <div class="max-w-6xl mx-auto px-6">
+      <div class="text-center mb-16">
+        <p class="text-sm font-semibold text-brand-600 mb-2">Pricing</p>
+        <h2 class="text-3xl md:text-4xl font-extrabold tracking-tight mb-4">Simple, transparent pricing</h2>
+        <p class="text-gray-500 max-w-2xl mx-auto">Start free, upgrade when you need more. No hidden fees, cancel anytime.</p>
+      </div>
+      <div class="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+        <!-- Free -->
+        <div class="card-hover bg-white border border-gray-200 rounded-2xl p-6 flex flex-col">
+          <h3 class="font-semibold text-lg mb-1">Free</h3>
+          <p class="text-gray-500 text-sm mb-5">For personal use</p>
+          <div class="mb-6">
+            <span class="text-4xl font-extrabold">$0</span>
+            <span class="text-gray-400 text-sm">/month</span>
+          </div>
+          <ul class="space-y-3 text-sm text-gray-600 mb-8 flex-1">
+            <li class="flex items-start gap-2">
+              <svg class="w-4 h-4 text-green-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+              Up to 100 expenses/month
+            </li>
+            <li class="flex items-start gap-2">
+              <svg class="w-4 h-4 text-green-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+              AI auto-categorization
+            </li>
+            <li class="flex items-start gap-2">
+              <svg class="w-4 h-4 text-green-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+              3 budget limits
+            </li>
+            <li class="flex items-start gap-2">
+              <svg class="w-4 h-4 text-green-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+              Dashboard analytics
+            </li>
+          </ul>
+          <a href="/register" class="block text-center bg-gray-100 text-gray-700 px-6 py-3 rounded-xl font-semibold text-sm hover:bg-gray-200 transition-colors">Get started</a>
+        </div>
+        <!-- Pro (popular) -->
+        <div class="card-hover pricing-popular bg-white rounded-2xl p-6 flex flex-col relative">
+          <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-brand-600 text-white text-xs font-semibold px-3 py-1 rounded-full">Most Popular</div>
+          <h3 class="font-semibold text-lg mb-1">Pro</h3>
+          <p class="text-gray-500 text-sm mb-5">For power users</p>
+          <div class="mb-6">
+            <span class="text-4xl font-extrabold">$9</span>
+            <span class="text-gray-400 text-sm">/month</span>
+          </div>
+          <ul class="space-y-3 text-sm text-gray-600 mb-8 flex-1">
+            <li class="flex items-start gap-2">
+              <svg class="w-4 h-4 text-green-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+              Unlimited expenses
+            </li>
+            <li class="flex items-start gap-2">
+              <svg class="w-4 h-4 text-green-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+              AI auto-categorization
+            </li>
+            <li class="flex items-start gap-2">
+              <svg class="w-4 h-4 text-green-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+              Unlimited budgets
+            </li>
+            <li class="flex items-start gap-2">
+              <svg class="w-4 h-4 text-green-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+              Smart budget suggestions
+            </li>
+            <li class="flex items-start gap-2">
+              <svg class="w-4 h-4 text-green-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+              Monthly AI insights email
+            </li>
+            <li class="flex items-start gap-2">
+              <svg class="w-4 h-4 text-green-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+              Recurring expenses
+            </li>
+            <li class="flex items-start gap-2">
+              <svg class="w-4 h-4 text-green-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+              Webhook API access
+            </li>
+          </ul>
+          <a href="/register" class="block text-center bg-brand-600 text-white px-6 py-3 rounded-xl font-semibold text-sm hover:bg-brand-700 transition-colors shadow-lg shadow-blue-500/20">Start free trial</a>
+        </div>
+        <!-- Business -->
+        <div class="card-hover bg-white border border-gray-200 rounded-2xl p-6 flex flex-col">
+          <h3 class="font-semibold text-lg mb-1">Business</h3>
+          <p class="text-gray-500 text-sm mb-5">For teams & companies</p>
+          <div class="mb-6">
+            <span class="text-4xl font-extrabold">$29</span>
+            <span class="text-gray-400 text-sm">/month</span>
+          </div>
+          <ul class="space-y-3 text-sm text-gray-600 mb-8 flex-1">
+            <li class="flex items-start gap-2">
+              <svg class="w-4 h-4 text-green-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+              Everything in Pro
+            </li>
+            <li class="flex items-start gap-2">
+              <svg class="w-4 h-4 text-green-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+              Up to 10 team members
+            </li>
+            <li class="flex items-start gap-2">
+              <svg class="w-4 h-4 text-green-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+              Team spending dashboard
+            </li>
+            <li class="flex items-start gap-2">
+              <svg class="w-4 h-4 text-green-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+              CSV/PDF export
+            </li>
+            <li class="flex items-start gap-2">
+              <svg class="w-4 h-4 text-green-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+              Priority support
+            </li>
+          </ul>
+          <a href="/register" class="block text-center bg-gray-100 text-gray-700 px-6 py-3 rounded-xl font-semibold text-sm hover:bg-gray-200 transition-colors">Contact sales</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Testimonials -->
+  <section class="py-20 md:py-28 bg-gray-50">
+    <div class="max-w-6xl mx-auto px-6">
+      <div class="text-center mb-16">
+        <p class="text-sm font-semibold text-brand-600 mb-2">Testimonials</p>
+        <h2 class="text-3xl md:text-4xl font-extrabold tracking-tight mb-4">Loved by people who track</h2>
+      </div>
+      <div class="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+        <div class="bg-white border border-gray-100 rounded-2xl p-6">
+          <div class="flex items-center gap-1 mb-3">
+            <svg class="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 24 24"><path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
+            <svg class="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 24 24"><path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
+            <svg class="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 24 24"><path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
+            <svg class="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 24 24"><path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
+            <svg class="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 24 24"><path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
+          </div>
+          <p class="text-sm text-gray-600 leading-relaxed mb-4">"The AI categorization is a game-changer. I used to spend 20 minutes categorizing expenses &mdash; now it's instant and accurate."</p>
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-brand-100 text-brand-700 rounded-full flex items-center justify-center text-xs font-bold">ML</div>
+            <div><p class="text-sm font-medium">Marie L.</p><p class="text-xs text-gray-400">Freelance Designer</p></div>
+          </div>
+        </div>
+        <div class="bg-white border border-gray-100 rounded-2xl p-6">
+          <div class="flex items-center gap-1 mb-3">
+            <svg class="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 24 24"><path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
+            <svg class="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 24 24"><path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
+            <svg class="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 24 24"><path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
+            <svg class="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 24 24"><path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
+            <svg class="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 24 24"><path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
+          </div>
+          <p class="text-sm text-gray-600 leading-relaxed mb-4">"The monthly insights email is like having a personal financial advisor. It catches spending patterns I would have completely missed."</p>
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center text-xs font-bold">JT</div>
+            <div><p class="text-sm font-medium">Jean T.</p><p class="text-xs text-gray-400">Software Engineer</p></div>
+          </div>
+        </div>
+        <div class="bg-white border border-gray-100 rounded-2xl p-6">
+          <div class="flex items-center gap-1 mb-3">
+            <svg class="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 24 24"><path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
+            <svg class="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 24 24"><path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
+            <svg class="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 24 24"><path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
+            <svg class="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 24 24"><path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
+            <svg class="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 24 24"><path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
+          </div>
+          <p class="text-sm text-gray-600 leading-relaxed mb-4">"Smart budget suggestions saved me so much time. It analyzed my history and nailed the recommended limits on the first try."</p>
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-purple-100 text-purple-700 rounded-full flex items-center justify-center text-xs font-bold">SB</div>
+            <div><p class="text-sm font-medium">Sophie B.</p><p class="text-xs text-gray-400">Small Business Owner</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Final CTA -->
+  <section class="py-20 md:py-28">
+    <div class="max-w-3xl mx-auto px-6 text-center">
+      <div class="bg-gradient-to-br from-brand-600 to-brand-800 rounded-3xl p-10 md:p-16 text-white">
+        <h2 class="text-3xl md:text-4xl font-extrabold tracking-tight mb-4">Ready to take control of your spending?</h2>
+        <p class="text-blue-100 mb-8 max-w-lg mx-auto">Join thousands of people who use Spendifi to understand their money better. Start your free trial today.</p>
+        <a href="/register" class="inline-flex items-center gap-2 bg-white text-brand-700 px-8 py-4 rounded-xl font-semibold text-sm hover:bg-blue-50 transition-colors">
+          Get started for free
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="bg-gray-50 border-t border-gray-100 py-12">
+    <div class="max-w-6xl mx-auto px-6">
+      <div class="grid md:grid-cols-4 gap-8 mb-8">
+        <div>
+          <a href="#" class="flex items-center gap-2.5 mb-4">
+            <div class="h-7 w-7 bg-gray-900 rounded-md flex items-center justify-center">
+              <span class="text-white font-bold text-xs">S</span>
+            </div>
+            <span class="font-semibold text-sm tracking-tight">Spendifi</span>
+          </a>
+          <p class="text-xs text-gray-400 leading-relaxed">AI-powered expense tracking for individuals and teams who want financial clarity without the hassle.</p>
+        </div>
+        <div>
+          <h4 class="font-semibold text-sm mb-3">Product</h4>
+          <ul class="space-y-2 text-sm text-gray-500">
+            <li><a href="#features" class="hover:text-gray-900 transition-colors">Features</a></li>
+            <li><a href="#pricing" class="hover:text-gray-900 transition-colors">Pricing</a></li>
+            <li><a href="#how-it-works" class="hover:text-gray-900 transition-colors">How it works</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="font-semibold text-sm mb-3">Account</h4>
+          <ul class="space-y-2 text-sm text-gray-500">
+            <li><a href="/login" class="hover:text-gray-900 transition-colors">Sign in</a></li>
+            <li><a href="/register" class="hover:text-gray-900 transition-colors">Create account</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="font-semibold text-sm mb-3">Legal</h4>
+          <ul class="space-y-2 text-sm text-gray-500">
+            <li><a href="#" class="hover:text-gray-900 transition-colors">Privacy Policy</a></li>
+            <li><a href="#" class="hover:text-gray-900 transition-colors">Terms of Service</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="border-t border-gray-200 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <p class="text-xs text-gray-400">&copy; 2026 Spendifi. All rights reserved.</p>
+        <div class="flex items-center gap-4">
+          <a href="#" class="text-gray-400 hover:text-gray-600 transition-colors">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/></svg>
+          </a>
+          <a href="#" class="text-gray-400 hover:text-gray-600 transition-colors">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

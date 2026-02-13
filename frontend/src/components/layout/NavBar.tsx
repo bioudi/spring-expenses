@@ -13,7 +13,7 @@ export default function NavBar() {
   const location = useLocation()
 
   const navItems = [
-    { to: '/', label: t('nav.dashboard'), icon: LayoutDashboard },
+    { to: '/dashboard', label: t('nav.dashboard'), icon: LayoutDashboard },
     { to: '/expenses', label: t('nav.expenses'), icon: Receipt },
     { to: '/recurring', label: t('nav.recurring'), icon: Repeat },
     { to: '/budgets', label: t('nav.budgets'), icon: Target },
@@ -76,7 +76,7 @@ export default function NavBar() {
           <NavLink
             key={item.to}
             to={item.to}
-            end={item.to === '/'}
+            end={item.to === '/dashboard'}
             className={({ isActive }) =>
               cn(
                 'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors no-underline',

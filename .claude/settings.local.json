@@ -36,7 +36,9 @@
       "WebFetch(domain:instantdomainsearch.com)",
       "Bash(test:*)",
       "Bash(npx tsc:*)",
-      "Bash(npm run lint:*)"
+      "Bash(npm run lint:*)",
+      "WebFetch(domain:mvnrepository.com)",
+      "Bash(git -C /Users/amine/Projects/SpringExpensesTracker status --short)"
     ]
   }
 }
