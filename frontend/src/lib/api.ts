@@ -49,8 +49,12 @@ async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
 export const api = {
   getDashboard: (date: string) =>
     apiFetch<DashboardResponse>(`/api/expenses/dashboard?date=${date}`),
-  getExpenses: () =>
-    apiFetch<ExpenseResponse[]>('/api/expenses'),
+  getExpenses: (params?: { startDate?: string; endDate?: string }) => {
+    const url = new URL('/api/expenses', window.location.origin)
+    if (params?.startDate) url.searchParams.set('startDate', params.startDate)
+    if (params?.endDate) url.searchParams.set('endDate', params.endDate)
+    return apiFetch<ExpenseResponse[]>(url.pathname + url.search)
+  },
   createExpense: (data: ExpenseRequest) =>
     apiFetch<ExpenseResponse>('/api/expenses', { method: 'POST', body: JSON.stringify(data) }),
   updateExpense: (id: string, data: ExpenseRequest) =>

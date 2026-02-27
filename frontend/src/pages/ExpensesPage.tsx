@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react'
-import { Plus, Pencil, Trash2, Repeat } from 'lucide-react'
+import { useEffect, useState, useMemo } from 'react'
+import { Plus, Pencil, Trash2, Repeat, Filter, ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { startOfMonth, endOfMonth, addMonths, format, isSameMonth } from 'date-fns'
+import { fr as frLocale, enUS } from 'date-fns/locale'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -10,11 +12,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel } from '@/components/ui/alert-dialog'
 import { api } from '@/lib/api'
-import { formatMoney, formatDateTime, toLocalDateTimeInput } from '@/lib/formatters'
+import { formatMoney, formatDateTime, toLocalDateTimeInput, toISODate } from '@/lib/formatters'
 import { CATEGORY_COLORS, CATEGORY_GROUPS, PAYMENT_METHODS } from '@/lib/categories'
 import { useI18n } from '@/i18n'
 import { toast } from 'sonner'
-import { toISODate } from '@/lib/formatters'
 import type { ExpenseResponse, ExpenseRequest, RecurrenceFrequency, DayOfWeek } from '@/types'
 
 export default function ExpensesPage() {
@@ -24,6 +25,22 @@ export default function ExpensesPage() {
   const [editing, setEditing] = useState<ExpenseResponse | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<ExpenseResponse | null>(null)
   const [loading, setLoading] = useState(true)
+
+  // Month navigation
+  const [currentMonth, setCurrentMonth] = useState(() => startOfMonth(new Date()))
+  const isCurrentMonth = isSameMonth(currentMonth, new Date())
+
+  // Filter state
+  const [showFilters, setShowFilters] = useState(false)
+  const [filterMerchant, setFilterMerchant] = useState('')
+  const [filterMinAmount, setFilterMinAmount] = useState('')
+  const [filterMaxAmount, setFilterMaxAmount] = useState('')
+  const [filterCardName, setFilterCardName] = useState('')
+  const [filterPaymentMethod, setFilterPaymentMethod] = useState('')
+  const [filterCategory, setFilterCategory] = useState('')
+  const [filterNote, setFilterNote] = useState('')
+
+  const activeFilterCount = [filterMerchant, filterMinAmount, filterMaxAmount, filterCardName, filterPaymentMethod, filterCategory, filterNote].filter(Boolean).length
 
   const [recurringTarget, setRecurringTarget] = useState<ExpenseResponse | null>(null)
   const [recFrequency, setRecFrequency] = useState<RecurrenceFrequency>('MONTHLY')
@@ -59,14 +76,41 @@ export default function ExpensesPage() {
 
   useEffect(() => {
     loadExpenses()
-  }, [])
+  }, [currentMonth])
 
   async function loadExpenses() {
     setLoading(true)
-    const data = await api.getExpenses()
+    const startDate = toISODate(startOfMonth(currentMonth))
+    const endDate = toISODate(endOfMonth(currentMonth))
+    const data = await api.getExpenses({ startDate, endDate })
     setExpenses(data)
     setLoading(false)
   }
+
+  const filteredExpenses = useMemo(() => {
+    return expenses.filter((exp) => {
+      if (filterMerchant && !exp.merchant.toLowerCase().includes(filterMerchant.toLowerCase())) return false
+      if (filterMinAmount && exp.amount < parseFloat(filterMinAmount)) return false
+      if (filterMaxAmount && exp.amount > parseFloat(filterMaxAmount)) return false
+      if (filterCardName && !(exp.cardName || '').toLowerCase().includes(filterCardName.toLowerCase())) return false
+      if (filterPaymentMethod && exp.paymentMethod !== filterPaymentMethod) return false
+      if (filterCategory && exp.category !== filterCategory) return false
+      if (filterNote && !(exp.notes || '').toLowerCase().includes(filterNote.toLowerCase())) return false
+      return true
+    })
+  }, [expenses, filterMerchant, filterMinAmount, filterMaxAmount, filterCardName, filterPaymentMethod, filterCategory, filterNote])
+
+  function clearFilters() {
+    setFilterMerchant('')
+    setFilterMinAmount('')
+    setFilterMaxAmount('')
+    setFilterCardName('')
+    setFilterPaymentMethod('')
+    setFilterCategory('')
+    setFilterNote('')
+  }
+
+  const monthLabel = format(currentMonth, 'MMMM yyyy', { locale: language === 'fr' ? frLocale : enUS })
 
   function openAdd() {
     setEditing(null)
@@ -176,6 +220,106 @@ export default function ExpensesPage() {
         </Button>
       </div>
 
+      {/* Month Navigation */}
+      <div className="flex items-center justify-end gap-2 px-4 lg:px-6">
+        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentMonth(m => addMonths(m, -1))}>
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <span className="text-sm font-medium capitalize">{monthLabel}</span>
+        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentMonth(m => addMonths(m, 1))} disabled={isCurrentMonth}>
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* Filter Controls */}
+      <div className="flex items-center justify-between px-4 lg:px-6">
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setShowFilters(f => !f)}>
+            <Filter className="h-4 w-4 mr-2" />
+            {t('expenses.filters')}
+            {activeFilterCount > 0 && (
+              <Badge className="ml-1.5 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">{activeFilterCount}</Badge>
+            )}
+          </Button>
+          {activeFilterCount > 0 && (
+            <Button variant="ghost" size="sm" onClick={clearFilters}>
+              <X className="h-4 w-4 mr-1" />
+              {t('expenses.clearFilters')}
+            </Button>
+          )}
+        </div>
+        {expenses.length > 0 && (
+          <span className="text-sm text-muted-foreground">
+            {t('expenses.showingCount', { count: filteredExpenses.length, total: expenses.length })}
+          </span>
+        )}
+      </div>
+
+      {/* Filter Panel */}
+      {showFilters && (
+        <div className="px-4 lg:px-6">
+          <Card>
+            <CardContent className="p-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <Input
+                  placeholder={t('expenses.filterMerchantPlaceholder')}
+                  value={filterMerchant}
+                  onChange={(e) => setFilterMerchant(e.target.value)}
+                />
+                <Input
+                  type="number"
+                  step="0.01"
+                  placeholder={t('expenses.minAmount')}
+                  value={filterMinAmount}
+                  onChange={(e) => setFilterMinAmount(e.target.value)}
+                />
+                <Input
+                  type="number"
+                  step="0.01"
+                  placeholder={t('expenses.maxAmount')}
+                  value={filterMaxAmount}
+                  onChange={(e) => setFilterMaxAmount(e.target.value)}
+                />
+                <Input
+                  placeholder={t('expenses.filterCardPlaceholder')}
+                  value={filterCardName}
+                  onChange={(e) => setFilterCardName(e.target.value)}
+                />
+                <select
+                  value={filterPaymentMethod}
+                  onChange={(e) => setFilterPaymentMethod(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                  <option value="">{t('expenses.allPayments')}</option>
+                  {PAYMENT_METHODS.map((m) => (
+                    <option key={m} value={m}>{t(`payment.${m}`)}</option>
+                  ))}
+                </select>
+                <select
+                  value={filterCategory}
+                  onChange={(e) => setFilterCategory(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                  <option value="">{t('expenses.allCategories')}</option>
+                  {CATEGORY_GROUPS.map((g) => (
+                    <optgroup key={g.label} label={t(`categoryGroups.${g.label}`)}>
+                      {g.categories.map((c) => (
+                        <option key={c} value={c}>{tc(c)}</option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+                <Input
+                  placeholder={t('expenses.filterNotesPlaceholder')}
+                  value={filterNote}
+                  onChange={(e) => setFilterNote(e.target.value)}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {loading ? (
         <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">{t('expenses.loadingExpenses')}</div>
       ) : expenses.length === 0 ? (
@@ -186,6 +330,14 @@ export default function ExpensesPage() {
               <Button onClick={openAdd} variant="outline" size="sm">
                 <Plus className="h-4 w-4 mr-2" /> {t('expenses.addFirstExpense')}
               </Button>
+            </CardContent>
+          </Card>
+        </div>
+      ) : filteredExpenses.length === 0 ? (
+        <div className="px-4 lg:px-6">
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-16">
+              <p className="text-sm text-muted-foreground">{t('expenses.noMatchingExpenses')}</p>
             </CardContent>
           </Card>
         </div>
@@ -207,7 +359,7 @@ export default function ExpensesPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {expenses.map((exp) => (
+                  {filteredExpenses.map((exp) => (
                     <TableRow key={exp.id}>
                       <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                         {formatDateTime(exp.timestamp, language)}
@@ -253,7 +405,7 @@ export default function ExpensesPage() {
 
           {/* Mobile Cards */}
           <div className="md:hidden flex flex-col gap-3 px-4 lg:px-6">
-            {expenses.map((exp) => (
+            {filteredExpenses.map((exp) => (
               <Card key={exp.id}>
                 <CardContent className="p-4">
                   <div className="flex justify-between items-start mb-2">
