@@ -178,6 +178,7 @@ export const fr = {
     filterNotesPlaceholder: 'Filtrer par notes...',
     noMatchingExpenses: 'Aucune dépense ne correspond à vos filtres.',
     showingCount: 'Affichage de {{count}} sur {{total}}',
+    exportCsv: 'Exporter CSV',
   },
   recurring: {
     title: 'Dépenses récurrentes',

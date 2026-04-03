@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
-import { Plus, Pencil, Trash2, Repeat, Filter, ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { Plus, Pencil, Trash2, Repeat, Filter, ChevronLeft, ChevronRight, X, Download } from 'lucide-react'
 import { startOfMonth, endOfMonth, addMonths, format, isSameMonth } from 'date-fns'
 import { fr as frLocale, enUS } from 'date-fns/locale'
 import { Card, CardContent } from '@/components/ui/card'
@@ -14,6 +14,7 @@ import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, A
 import { api } from '@/lib/api'
 import { formatMoney, formatDateTime, toLocalDateTimeInput, toISODate } from '@/lib/formatters'
 import { CATEGORY_COLORS, CATEGORY_GROUPS, PAYMENT_METHODS } from '@/lib/categories'
+import { downloadCsv } from '@/lib/csv'
 import { useI18n } from '@/i18n'
 import { toast } from 'sonner'
 import type { ExpenseResponse, ExpenseRequest, RecurrenceFrequency, DayOfWeek } from '@/types'
@@ -108,6 +109,20 @@ export default function ExpensesPage() {
     setFilterPaymentMethod('')
     setFilterCategory('')
     setFilterNote('')
+  }
+
+  function handleExportCsv() {
+    const headers = ['Date', 'Merchant', 'Category', 'Amount', 'Payment Method', 'Card', 'Notes']
+    const rows = filteredExpenses.map(exp => [
+      format(new Date(exp.timestamp), 'yyyy-MM-dd HH:mm'),
+      exp.merchant,
+      exp.category,
+      String(exp.amount),
+      exp.paymentMethod || '',
+      exp.cardName || '',
+      exp.notes || '',
+    ])
+    downloadCsv(`expenses-${format(currentMonth, 'yyyy-MM')}.csv`, headers, rows)
   }
 
   const monthLabel = format(currentMonth, 'MMMM yyyy', { locale: language === 'fr' ? frLocale : enUS })
@@ -248,11 +263,17 @@ export default function ExpensesPage() {
             </Button>
           )}
         </div>
-        {expenses.length > 0 && (
-          <span className="text-sm text-muted-foreground">
-            {t('expenses.showingCount', { count: filteredExpenses.length, total: expenses.length })}
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {expenses.length > 0 && (
+            <span className="text-sm text-muted-foreground">
+              {t('expenses.showingCount', { count: filteredExpenses.length, total: expenses.length })}
+            </span>
+          )}
+          <Button variant="outline" size="sm" onClick={handleExportCsv} disabled={filteredExpenses.length === 0}>
+            <Download className="h-4 w-4 mr-2" />
+            {t('expenses.exportCsv')}
+          </Button>
+        </div>
       </div>
 
       {/* Filter Panel */}
