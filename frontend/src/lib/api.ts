@@ -89,8 +89,10 @@ export const api = {
     apiFetch<RecurringExpenseResponse>(`/api/recurring-expenses/${id}/toggle`, { method: 'PATCH' }),
   createRecurringFromExpense: (expenseId: string, data: RecurringExpenseRequest) =>
     apiFetch<RecurringExpenseResponse>(`/api/recurring-expenses/from-expense/${expenseId}`, { method: 'POST', body: JSON.stringify(data) }),
-  getBudgets: () =>
-    apiFetch<BudgetResponse[]>('/api/budgets'),
+  getBudgets: (date?: string) => {
+    const url = date ? `/api/budgets?date=${date}` : '/api/budgets'
+    return apiFetch<BudgetResponse[]>(url)
+  },
   createBudget: (data: BudgetRequest) =>
     apiFetch<BudgetResponse>('/api/budgets', { method: 'POST', body: JSON.stringify(data) }),
   updateBudget: (id: string, data: BudgetRequest) =>

@@ -91,8 +91,8 @@ export default function DashboardPage() {
   }, [refDate])
 
   useEffect(() => {
-    api.getBudgets().then(setBudgets).catch(() => {})
-  }, [])
+    api.getBudgets(toISODate(refDate)).then(setBudgets).catch(() => {})
+  }, [refDate])
 
   const data: PeriodSummary | null = dashboard ? dashboard[period] : null
 

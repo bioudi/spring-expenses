@@ -17,7 +17,6 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.time.DayOfWeek;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
@@ -95,7 +94,7 @@ public class ExpenseService {
 
         if (startDate != null && endDate != null) {
             LocalDateTime start = startDate.atStartOfDay();
-            LocalDateTime end = endDate.atTime(LocalTime.MAX);
+            LocalDateTime end = endDate.plusDays(1).atStartOfDay();
 
             if (category != null && !category.isBlank()) {
                 expenses = expenseRepository.findByUserIdAndDateRangeAndCategory(userId, start, end, category);
@@ -166,7 +165,7 @@ public class ExpenseService {
 
         // Today: single day
         List<Expense> todayExpenses = expenseRepository.findByUserIdAndDateRange(
-                userId, ref.atStartOfDay(), ref.atTime(LocalTime.MAX));
+                userId, ref.atStartOfDay(), ref.plusDays(1).atStartOfDay());
 
         // Week: Monday → Sunday containing the reference date
         LocalDate weekStart = ref.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
@@ -181,11 +180,11 @@ public class ExpenseService {
         LocalDate yearEnd = ref.withMonth(12).withDayOfMonth(31);
 
         List<Expense> weekExpenses = expenseRepository.findByUserIdAndDateRange(
-                userId, weekStart.atStartOfDay(), weekEnd.atTime(LocalTime.MAX));
+                userId, weekStart.atStartOfDay(), weekEnd.plusDays(1).atStartOfDay());
         List<Expense> monthExpenses = expenseRepository.findByUserIdAndDateRange(
-                userId, monthStart.atStartOfDay(), monthEnd.atTime(LocalTime.MAX));
+                userId, monthStart.atStartOfDay(), monthEnd.plusDays(1).atStartOfDay());
         List<Expense> yearExpenses = expenseRepository.findByUserIdAndDateRange(
-                userId, yearStart.atStartOfDay(), yearEnd.atTime(LocalTime.MAX));
+                userId, yearStart.atStartOfDay(), yearEnd.plusDays(1).atStartOfDay());
 
         return DashboardResponse.builder()
                 .today(buildPeriodSummary(todayExpenses, ref, ref))

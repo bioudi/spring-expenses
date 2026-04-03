@@ -25,7 +25,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -55,16 +54,16 @@ public class BudgetService {
                 .build();
 
         Budget saved = budgetRepository.save(budget);
-        Map<String, BigDecimal> spentByCategory = getCurrentMonthSpent(userId);
+        Map<String, BigDecimal> spentByCategory = getMonthSpent(userId, null);
         BigDecimal spent = sumSpentForCategories(saved.getCategories(), spentByCategory);
         log.info("Created budget for categories {} with limit {}", saved.getCategories(), saved.getMonthlyLimit());
         return BudgetResponse.fromEntity(saved, spent);
     }
 
     @Transactional(readOnly = true)
-    public List<BudgetResponse> getBudgets(UUID userId) {
+    public List<BudgetResponse> getBudgets(UUID userId, LocalDate date) {
         List<Budget> budgets = budgetRepository.findAllByUserIdOrderByCreatedAtDesc(userId);
-        Map<String, BigDecimal> spentByCategory = getCurrentMonthSpent(userId);
+        Map<String, BigDecimal> spentByCategory = getMonthSpent(userId, date);
 
         return budgets.stream()
                 .map(b -> BudgetResponse.fromEntity(b, sumSpentForCategories(b.getCategories(), spentByCategory)))
@@ -75,7 +74,7 @@ public class BudgetService {
     public BudgetResponse getBudgetById(UUID id, UUID userId) {
         Budget budget = budgetRepository.findByIdAndUserId(id, userId)
                 .orElseThrow(() -> new BudgetNotFoundException(id));
-        Map<String, BigDecimal> spentByCategory = getCurrentMonthSpent(userId);
+        Map<String, BigDecimal> spentByCategory = getMonthSpent(userId, null);
         BigDecimal spent = sumSpentForCategories(budget.getCategories(), spentByCategory);
         return BudgetResponse.fromEntity(budget, spent);
     }
@@ -92,7 +91,7 @@ public class BudgetService {
         budget.setMonthlyLimit(request.getMonthlyLimit());
 
         Budget saved = budgetRepository.save(budget);
-        Map<String, BigDecimal> spentByCategory = getCurrentMonthSpent(userId);
+        Map<String, BigDecimal> spentByCategory = getMonthSpent(userId, null);
         BigDecimal spent = sumSpentForCategories(saved.getCategories(), spentByCategory);
         log.info("Updated budget {}: categories={}, limit={}", id, saved.getCategories(), saved.getMonthlyLimit());
         return BudgetResponse.fromEntity(saved, spent);
@@ -125,13 +124,13 @@ public class BudgetService {
         }
     }
 
-    private Map<String, BigDecimal> getCurrentMonthSpent(UUID userId) {
-        LocalDate now = LocalDate.now();
-        LocalDate monthStart = now.withDayOfMonth(1);
-        LocalDate monthEnd = now.with(TemporalAdjusters.lastDayOfMonth());
+    private Map<String, BigDecimal> getMonthSpent(UUID userId, LocalDate referenceDate) {
+        LocalDate ref = referenceDate != null ? referenceDate : LocalDate.now();
+        LocalDate monthStart = ref.withDayOfMonth(1);
+        LocalDate monthEnd = ref.with(TemporalAdjusters.lastDayOfMonth());
 
         List<Expense> expenses = expenseRepository.findByUserIdAndDateRange(
-                userId, monthStart.atStartOfDay(), monthEnd.atTime(LocalTime.MAX));
+                userId, monthStart.atStartOfDay(), monthEnd.plusDays(1).atStartOfDay());
 
         return expenses.stream()
                 .collect(Collectors.groupingBy(
@@ -151,7 +150,7 @@ public class BudgetService {
         LocalDate now = LocalDate.now();
         LocalDate threeMonthsAgo = now.minusMonths(3).withDayOfMonth(1);
         List<Expense> expenses = expenseRepository.findByUserIdAndDateRange(
-                userId, threeMonthsAgo.atStartOfDay(), now.atTime(LocalTime.MAX));
+                userId, threeMonthsAgo.atStartOfDay(), now.plusDays(1).atStartOfDay());
 
         if (expenses.isEmpty()) {
             return List.of();

@@ -9,8 +9,10 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -22,9 +24,10 @@ public class BudgetController {
     private final BudgetService budgetService;
 
     @GetMapping
-    public ResponseEntity<List<BudgetResponse>> getBudgets() {
+    public ResponseEntity<List<BudgetResponse>> getBudgets(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         UUID userId = SecurityUtils.getCurrentUserId();
-        List<BudgetResponse> budgets = budgetService.getBudgets(userId);
+        List<BudgetResponse> budgets = budgetService.getBudgets(userId, date);
         return ResponseEntity.ok(budgets);
     }
 

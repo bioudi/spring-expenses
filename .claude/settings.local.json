@@ -38,7 +38,8 @@
       "Bash(npx tsc:*)",
       "Bash(npm run lint:*)",
       "WebFetch(domain:mvnrepository.com)",
-      "Bash(git -C /Users/amine/Projects/SpringExpensesTracker status --short)"
+      "Bash(git -C /Users/amine/Projects/SpringExpensesTracker status --short)",
+      "Bash(open:*)"
     ]
   }
 }
