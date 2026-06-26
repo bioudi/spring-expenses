@@ -7,6 +7,8 @@ import com.expensetracker.config.ExpenseCategory;
 import com.expensetracker.dto.BudgetRequest;
 import com.expensetracker.dto.BudgetResponse;
 import com.expensetracker.dto.BudgetSuggestionResponse;
+import com.expensetracker.dto.WebhookBudgetsResponse;
+import com.expensetracker.dto.WebhookBudgetsResponse.BudgetCategoryStatus;
 import com.expensetracker.entity.Budget;
 import com.expensetracker.entity.Expense;
 import com.expensetracker.entity.User;
@@ -77,6 +79,42 @@ public class BudgetService {
         Map<String, BigDecimal> spentByCategory = getMonthSpent(userId, null);
         BigDecimal spent = sumSpentForCategories(budget.getCategories(), spentByCategory);
         return BudgetResponse.fromEntity(budget, spent);
+    }
+
+    @Transactional(readOnly = true)
+    public WebhookBudgetsResponse getWebhookBudgets(UUID userId, LocalDate referenceDate) {
+        LocalDate ref = referenceDate != null ? referenceDate : LocalDate.now();
+        List<Budget> budgets = budgetRepository.findAllByUserIdOrderByCreatedAtDesc(userId);
+        Map<String, BigDecimal> spentByCategory = getMonthSpent(userId, ref);
+
+        List<BudgetCategoryStatus> rows = new ArrayList<>();
+        for (Budget budget : budgets) {
+            List<String> categories = budget.getCategories();
+            if (categories == null || categories.isEmpty()) continue;
+
+            BigDecimal sharedLimit = budget.getMonthlyLimit();
+            int n = categories.size();
+            // Split the budget's monthly limit evenly across the categories it covers
+            BigDecimal perCategoryLimit = sharedLimit.divide(
+                    BigDecimal.valueOf(n), 4, RoundingMode.HALF_UP);
+
+            for (String category : categories) {
+                BigDecimal spent = spentByCategory.getOrDefault(category, BigDecimal.ZERO);
+                BigDecimal percentage = perCategoryLimit.compareTo(BigDecimal.ZERO) > 0
+                        ? spent.multiply(BigDecimal.valueOf(100))
+                                .divide(perCategoryLimit, 2, RoundingMode.HALF_UP)
+                        : BigDecimal.ZERO;
+
+                rows.add(BudgetCategoryStatus.builder()
+                        .category(category)
+                        .limit(perCategoryLimit)
+                        .spent(spent)
+                        .percentage(percentage)
+                        .build());
+            }
+        }
+
+        return WebhookBudgetsResponse.builder().budgets(rows).build();
     }
 
     @Transactional
