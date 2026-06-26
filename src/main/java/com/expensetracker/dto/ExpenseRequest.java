@@ -7,6 +7,7 @@ import jakarta.validation.constraints.*;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Getter
@@ -32,6 +33,15 @@ public class ExpenseRequest {
     private String card;
 
     private String name;
+
+    /**
+     * Optional transaction date (date-only, ISO-8601 "YYYY-MM-DD").
+     * If provided, takes precedence over {@link #timestamp} for the
+     * persisted expense timestamp (converted to start-of-day LocalDateTime).
+     * If absent, falls back to {@link #timestamp} then to LocalDateTime.now().
+     */
+    @JsonProperty("date")
+    private LocalDate date;
 
     private LocalDateTime timestamp;
 

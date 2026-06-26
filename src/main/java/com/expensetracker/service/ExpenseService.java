@@ -75,7 +75,7 @@ public class ExpenseService {
                 .merchant(request.getMerchant())
                 .paymentMethod(paymentMethod)
                 .cardName(cardName)
-                .timestamp(request.getTimestamp() != null ? request.getTimestamp() : LocalDateTime.now())
+                .timestamp(resolveTimestampForCreate(request))
                 .notes(notes)
                 .user(userRef)
                 .build();
@@ -326,8 +326,9 @@ public class ExpenseService {
         }
         expense.setCardName(cardName);
 
-        if (request.getTimestamp() != null) {
-            expense.setTimestamp(request.getTimestamp());
+        LocalDateTime resolvedTimestamp = resolveTimestampForUpdate(request);
+        if (resolvedTimestamp != null) {
+            expense.setTimestamp(resolvedTimestamp);
         }
 
         String notes = request.getNotes();
@@ -357,5 +358,35 @@ public class ExpenseService {
                             String.join(", ", ExpenseCategory.VALID_CATEGORIES)
             );
         }
+    }
+
+    /**
+     * Resolves the expense timestamp for a create request.
+     * Priority: {@code request.date} (start-of-day) &gt; {@code request.timestamp} &gt; {@code now()}.
+     * Always returns a non-null LocalDateTime.
+     */
+    private LocalDateTime resolveTimestampForCreate(ExpenseRequest request) {
+        if (request.getDate() != null) {
+            log.debug("Using provided date '{}' for new expense timestamp", request.getDate());
+            return request.getDate().atStartOfDay();
+        }
+        if (request.getTimestamp() != null) {
+            return request.getTimestamp();
+        }
+        return LocalDateTime.now();
+    }
+
+    /**
+     * Resolves the expense timestamp for an update request.
+     * Priority: {@code request.date} (start-of-day) &gt; {@code request.timestamp} &gt; {@code null}
+     * (caller leaves the existing timestamp untouched).
+     * Returns null when neither field was provided.
+     */
+    private LocalDateTime resolveTimestampForUpdate(ExpenseRequest request) {
+        if (request.getDate() != null) {
+            log.debug("Using provided date '{}' to update expense timestamp", request.getDate());
+            return request.getDate().atStartOfDay();
+        }
+        return request.getTimestamp();
     }
 }
