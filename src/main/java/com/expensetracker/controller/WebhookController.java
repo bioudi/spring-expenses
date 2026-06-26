@@ -3,6 +3,9 @@ package com.expensetracker.controller;
 import com.expensetracker.dto.ExpenseRequest;
 import com.expensetracker.dto.ExpenseResponse;
 import com.expensetracker.dto.WebhookBudgetsResponse;
+import com.expensetracker.dto.WebhookDashboardResponse;
+import com.expensetracker.dto.WebhookDashboardResponse.CategoryEntry;
+import com.expensetracker.dto.WebhookDashboardResponse.MerchantEntry;
 import com.expensetracker.service.BudgetService;
 import com.expensetracker.service.ExpenseService;
 import com.expensetracker.util.SecurityUtils;
@@ -14,12 +17,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -113,6 +117,84 @@ public class WebhookController {
         }
 
         return ResponseEntity.ok(expenses);
+    }
+
+    @GetMapping("/dashboard")
+    public ResponseEntity<?> getDashboard(
+            @RequestParam(name = "date", required = false) String dateParam
+    ) {
+        UUID userId = SecurityUtils.getCurrentUserId();
+
+        // Parse date parameter (YYYY-MM), default to current month
+        LocalDate referenceDate;
+        try {
+            referenceDate = parseYearMonthOrDefault(dateParam);
+        } catch (ResponseStatusException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "Invalid date format. Expected YYYY-MM, got: " + (dateParam != null ? dateParam : "")
+            ));
+        }
+        YearMonth yearMonth = YearMonth.from(referenceDate);
+
+        log.info("Webhook dashboard request for userId={}, month={}", userId, yearMonth);
+
+        // Fetch expenses for the month
+        LocalDate monthStart = yearMonth.atDay(1);
+        LocalDate monthEnd = yearMonth.atEndOfMonth();
+
+        List<ExpenseResponse> expenses = expenseService.getExpenses(monthStart, monthEnd, null, userId);
+
+        // Total spent and count
+        BigDecimal totalSpent = expenses.stream()
+                .map(ExpenseResponse::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // Category breakdown (category -> total + count)
+        Map<String, List<ExpenseResponse>> byCategory = expenses.stream()
+                .collect(Collectors.groupingBy(ExpenseResponse::getCategory));
+
+        Map<String, CategoryEntry> categoryBreakdown = new LinkedHashMap<>();
+        for (Map.Entry<String, List<ExpenseResponse>> entry : byCategory.entrySet()) {
+            BigDecimal catTotal = entry.getValue().stream()
+                    .map(ExpenseResponse::getAmount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            categoryBreakdown.put(entry.getKey(), CategoryEntry.builder()
+                    .total(catTotal)
+                    .count(entry.getValue().size())
+                    .build());
+        }
+
+        // Top 5 merchants
+        Map<String, List<ExpenseResponse>> byMerchant = expenses.stream()
+                .collect(Collectors.groupingBy(ExpenseResponse::getMerchant));
+
+        List<MerchantEntry> topMerchants = byMerchant.entrySet().stream()
+                .map(entry -> {
+                    BigDecimal merchantTotal = entry.getValue().stream()
+                            .map(ExpenseResponse::getAmount)
+                            .reduce(BigDecimal.ZERO, BigDecimal::add);
+                    return MerchantEntry.builder()
+                            .merchant(entry.getKey())
+                            .total(merchantTotal)
+                            .count(entry.getValue().size())
+                            .build();
+                })
+                .sorted(Comparator.comparing(MerchantEntry::getTotal).reversed())
+                .limit(5)
+                .collect(Collectors.toList());
+
+        // Budget status for this month
+        WebhookBudgetsResponse budgetStatus = budgetService.getWebhookBudgets(userId, referenceDate);
+
+        WebhookDashboardResponse response = WebhookDashboardResponse.builder()
+                .totalSpent(totalSpent)
+                .transactionCount(expenses.size())
+                .categoryBreakdown(categoryBreakdown)
+                .topMerchants(topMerchants)
+                .budgetStatus(budgetStatus)
+                .build();
+
+        return ResponseEntity.ok(response);
     }
 
     /**
