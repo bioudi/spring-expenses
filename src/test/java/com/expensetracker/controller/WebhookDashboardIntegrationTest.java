@@ -12,6 +12,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -21,6 +25,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Stream;
 
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -327,26 +332,26 @@ class WebhookDashboardIntegrationTest {
                     .build());
         }
 
-        @Test
-        void withDate_returnsDataForThatMonth() throws Exception {
-            mockMvc.perform(get("/api/webhook/dashboard")
-                            .param("date", "2026-06")
-                            .header("X-API-Key", VALID_API_KEY))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.transactionCount").value(1))
-                    .andExpect(jsonPath("$.totalSpent").value(closeTo(100.0, 0.01)))
-                    .andExpect(jsonPath("$.categoryBreakdown.Groceries.total").value(closeTo(100.0, 0.01)));
+        private static Stream<Arguments> dateFilterArgs() {
+            return Stream.of(
+                    Arguments.of("2026-06", 1, 100.0, "Groceries", 100.0),
+                    Arguments.of("2026-07", 1, 200.0, "Restaurants", 200.0),
+                    Arguments.of("2026-05", 1, 50.0, "Groceries", 50.0)
+            );
         }
 
-        @Test
-        void withDifferentMonth_returnsDataForThatMonth() throws Exception {
+        @ParameterizedTest(name = "date={0} → {1} txns, ${2}")
+        @MethodSource("dateFilterArgs")
+        void withDate_returnsDataForThatMonth(String date, int expectedCount, double expectedTotal,
+                                              String expectedCategory, double expectedCategoryTotal) throws Exception {
             mockMvc.perform(get("/api/webhook/dashboard")
-                            .param("date", "2026-07")
+                            .param("date", date)
                             .header("X-API-Key", VALID_API_KEY))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.transactionCount").value(1))
-                    .andExpect(jsonPath("$.totalSpent").value(closeTo(200.0, 0.01)))
-                    .andExpect(jsonPath("$.categoryBreakdown.Restaurants.total").value(closeTo(200.0, 0.01)));
+                    .andExpect(jsonPath("$.transactionCount").value(expectedCount))
+                    .andExpect(jsonPath("$.totalSpent").value(closeTo(expectedTotal, 0.01)))
+                    .andExpect(jsonPath("$.categoryBreakdown." + expectedCategory + ".total")
+                            .value(closeTo(expectedCategoryTotal, 0.01)));
         }
 
         @Test
@@ -358,18 +363,18 @@ class WebhookDashboardIntegrationTest {
                     .andExpect(jsonPath("$.totalSpent").value(closeTo(100.0, 0.01)));
         }
 
-        @Test
-        void invalidDateFormat_returns400() throws Exception {
+        @ParameterizedTest(name = "invalid date \"{0}\" → 400")
+        @CsvSource({
+            "2026/06",
+            "foobar",
+            "2026-06-15",
+            "not-a-date",
+            "2026.06",
+            "06-2026"
+        })
+        void invalidDateFormat_returns400(String invalidDate) throws Exception {
             mockMvc.perform(get("/api/webhook/dashboard")
-                            .param("date", "2026/06")
-                            .header("X-API-Key", VALID_API_KEY))
-                    .andExpect(status().isBadRequest());
-        }
-
-        @Test
-        void nonNumericDateFormat_returns400() throws Exception {
-            mockMvc.perform(get("/api/webhook/dashboard")
-                            .param("date", "foobar")
+                            .param("date", invalidDate)
                             .header("X-API-Key", VALID_API_KEY))
                     .andExpect(status().isBadRequest());
         }
