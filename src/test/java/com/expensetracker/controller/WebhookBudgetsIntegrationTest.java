@@ -69,9 +69,12 @@ class WebhookBudgetsIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        userRepository.deleteAll();
+        // Delete in FK order: dependents first, then users.
+        // (Old order did userRepository.deleteAll() first, which violates FK
+        // whenever a previous run left budgets/expenses behind.)
         budgetRepository.deleteAll();
         expenseRepository.deleteAll();
+        userRepository.deleteAll();
 
         testUser = userRepository.save(User.builder()
                 .email("budget-tester@example.com")
