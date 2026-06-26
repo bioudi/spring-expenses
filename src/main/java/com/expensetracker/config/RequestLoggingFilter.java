@@ -26,20 +26,34 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
-        if (request.getRequestURI().startsWith("/api/webhook")) {
-            ContentCachingRequestWrapper wrappedRequest = new ContentCachingRequestWrapper(request);
-
-            try {
-                filterChain.doFilter(wrappedRequest, response);
-            } finally {
-                String body = new String(wrappedRequest.getContentAsByteArray(), StandardCharsets.UTF_8);
-                log.info("Webhook request: method={}, uri={}, body={}",
-                        request.getMethod(),
-                        request.getRequestURI(),
-                        body);
-            }
-        } else {
+        if (!request.getRequestURI().startsWith("/api/webhook")) {
             filterChain.doFilter(request, response);
+            return;
+        }
+
+        ContentCachingRequestWrapper wrappedRequest = new ContentCachingRequestWrapper(request);
+
+        StringBuilder headers = new StringBuilder();
+        java.util.Collections.list(request.getHeaderNames()).forEach(name ->
+                headers.append(name).append("=").append(request.getHeader(name)).append(" "));
+
+        Throwable error = null;
+        try {
+            filterChain.doFilter(wrappedRequest, response);
+        } catch (Exception e) {
+            error = e;
+            throw e;
+        } finally {
+            String body = new String(wrappedRequest.getContentAsByteArray(), StandardCharsets.UTF_8);
+            if (error != null) {
+                log.error("Webhook FAILED: method={} uri={} status={} headers=[{}] body=[{}] error={}",
+                        request.getMethod(), request.getRequestURI(), response.getStatus(),
+                        headers, body.isBlank() ? "<empty>" : body, error.getMessage());
+            } else {
+                log.info("Webhook OK: method={} uri={} status={} headers=[{}] body=[{}]",
+                        request.getMethod(), request.getRequestURI(), response.getStatus(),
+                        headers, body.isBlank() ? "<empty>" : body);
+            }
         }
     }
 }

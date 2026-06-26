@@ -39,7 +39,8 @@
       "Bash(npm run lint:*)",
       "WebFetch(domain:mvnrepository.com)",
       "Bash(git -C /Users/amine/Projects/SpringExpensesTracker status --short)",
-      "Bash(open:*)"
+      "Bash(open:*)",
+      "Bash(xargs cat)"
     ]
   }
 }

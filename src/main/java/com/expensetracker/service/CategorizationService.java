@@ -96,14 +96,19 @@ public class CategorizationService {
             if (ExpenseCategory.isValid(category)) {
                 categoryCache.put(cacheKey, category);
 
-                // Persist to database with user reference
-                User userRef = entityManager.getReference(User.class, userId);
-                MerchantCategory mc = MerchantCategory.builder()
-                        .merchantKey(normalizedMerchant)
-                        .category(category)
-                        .user(userRef)
-                        .build();
-                merchantCategoryRepository.save(mc);
+                // Persist to database only if not already present (avoids duplicate key on reimport)
+                merchantCategoryRepository.findByUserIdAndMerchantKey(userId, normalizedMerchant)
+                        .ifPresentOrElse(
+                                existing -> log.info("Merchant '{}' already in DB, skipping insert", merchant),
+                                () -> {
+                                    User userRef = entityManager.getReference(User.class, userId);
+                                    MerchantCategory mc = MerchantCategory.builder()
+                                            .merchantKey(normalizedMerchant)
+                                            .category(category)
+                                            .user(userRef)
+                                            .build();
+                                    merchantCategoryRepository.save(mc);
+                                });
 
                 log.info("AI categorized merchant '{}' as '{}' (saved to DB, cache size: {})", merchant, category, categoryCache.size());
                 return category;
