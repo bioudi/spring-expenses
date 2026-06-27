@@ -316,6 +316,25 @@ class WebhookBudgetsIntegrationTest {
                             .header("X-API-Key", VALID_API_KEY))
                     .andExpect(status().isBadRequest());
         }
+
+        @Test
+        void invalidMonth_returns400() throws Exception {
+            // Month 13 is out of range — must not crash with 500
+            mockMvc.perform(get("/api/webhook/budgets")
+                            .param("date", "2026-13")
+                            .header("X-API-Key", VALID_API_KEY))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        void missingHyphen_returns400() throws Exception {
+            // "202605" is missing the hyphen separator
+            mockMvc.perform(get("/api/webhook/budgets")
+                            .param("date", "202605")
+                            .header("X-API-Key", VALID_API_KEY))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error", containsString("Invalid date format")));
+        }
     }
 
     // =====================================================================

@@ -55,11 +55,22 @@ public class WebhookController {
     }
 
     @GetMapping("/budgets")
-    public ResponseEntity<WebhookBudgetsResponse> getBudgets(
+    public ResponseEntity<?> getBudgets(
             @RequestParam(name = "date", required = false) String date
     ) {
         UUID userId = SecurityUtils.getCurrentUserId();
-        LocalDate referenceDate = parseYearMonthOrDefault(date);
+
+        // Parse date parameter (YYYY-MM), default to current month.
+        // Invalid format must produce 400, not propagate as 500.
+        LocalDate referenceDate;
+        try {
+            referenceDate = parseYearMonthOrDefault(date);
+        } catch (ResponseStatusException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "Invalid date format. Expected YYYY-MM, got: " + (date != null ? date : "")
+            ));
+        }
+
         WebhookBudgetsResponse response = budgetService.getWebhookBudgets(userId, referenceDate);
         return ResponseEntity.ok(response);
     }
