@@ -69,9 +69,12 @@ class WebhookBudgetsIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        userRepository.deleteAll();
+        // Delete in FK order: dependents first, then users.
+        // (Old order did userRepository.deleteAll() first, which violates FK
+        // whenever a previous run left budgets/expenses behind.)
         budgetRepository.deleteAll();
         expenseRepository.deleteAll();
+        userRepository.deleteAll();
 
         testUser = userRepository.save(User.builder()
                 .email("budget-tester@example.com")
@@ -312,6 +315,25 @@ class WebhookBudgetsIntegrationTest {
                             .param("date", "foobar")
                             .header("X-API-Key", VALID_API_KEY))
                     .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        void invalidMonth_returns400() throws Exception {
+            // Month 13 is out of range — must not crash with 500
+            mockMvc.perform(get("/api/webhook/budgets")
+                            .param("date", "2026-13")
+                            .header("X-API-Key", VALID_API_KEY))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        void missingHyphen_returns400() throws Exception {
+            // "202605" is missing the hyphen separator
+            mockMvc.perform(get("/api/webhook/budgets")
+                            .param("date", "202605")
+                            .header("X-API-Key", VALID_API_KEY))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error", containsString("Invalid date format")));
         }
     }
 
