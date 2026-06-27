@@ -17,7 +17,7 @@ import { CATEGORY_COLORS, CATEGORY_GROUPS, PAYMENT_METHODS } from '@/lib/categor
 import { downloadCsv } from '@/lib/csv'
 import { useI18n } from '@/i18n'
 import { toast } from 'sonner'
-import type { ExpenseResponse, ExpenseRequest, RecurrenceFrequency, DayOfWeek } from '@/types'
+import type { ExpenseResponse, ExpenseRequest, RecurrenceFrequency, DayOfWeek, AccountResponse } from '@/types'
 
 export default function ExpensesPage() {
   const { t, tc, language } = useI18n()
@@ -58,6 +58,9 @@ export default function ExpensesPage() {
   const [timestamp, setTimestamp] = useState('')
   const [notes, setNotes] = useState('')
 
+  const [accounts, setAccounts] = useState<AccountResponse[]>([])
+  const [accountId, setAccountId] = useState('')
+
   const FREQUENCIES: { value: RecurrenceFrequency; label: string }[] = [
     { value: 'DAILY', label: t('frequency.daily') },
     { value: 'WEEKLY', label: t('frequency.weekly') },
@@ -78,6 +81,10 @@ export default function ExpensesPage() {
   useEffect(() => {
     loadExpenses()
   }, [currentMonth])
+
+  useEffect(() => {
+    api.getAccounts().then(setAccounts).catch(() => {})
+  }, [])
 
   async function loadExpenses() {
     setLoading(true)
@@ -136,6 +143,7 @@ export default function ExpensesPage() {
     setCardName('')
     setTimestamp(toLocalDateTimeInput())
     setNotes('')
+    setAccountId('')
     setModalOpen(true)
   }
 
@@ -148,6 +156,7 @@ export default function ExpensesPage() {
     setCardName(exp.cardName || '')
     setTimestamp(toLocalDateTimeInput(new Date(exp.timestamp)))
     setNotes(exp.notes || '')
+    setAccountId(exp.accountId || '')
     setModalOpen(true)
   }
 
@@ -162,6 +171,7 @@ export default function ExpensesPage() {
       cardName: (paymentMethod === 'Card' || paymentMethod === 'Debit') ? cardName : null,
       timestamp: timestamp || null,
       notes: notes || null,
+      accountId: accountId || null,
     }
 
     try {

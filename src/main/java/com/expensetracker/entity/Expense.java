@@ -43,6 +43,10 @@ public class Expense {
     @Column(columnDefinition = "TEXT")
     private String notes;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "account_id")
+    private Account account;
+
     @Column(name = "recurring_expense_id")
     private UUID recurringExpenseId;
 

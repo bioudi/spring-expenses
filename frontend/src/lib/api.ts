@@ -11,6 +11,10 @@ import type {
   BudgetRequest,
   BudgetResponse,
   BudgetSuggestionResponse,
+  AccountResponse,
+  AccountRequest,
+  IncomeRequest,
+  IncomeResponse,
 } from '@/types'
 
 class ApiError extends Error {
@@ -101,4 +105,24 @@ export const api = {
     apiFetch<void>(`/api/budgets/${id}`, { method: 'DELETE' }),
   getBudgetSuggestions: () =>
     apiFetch<BudgetSuggestionResponse[]>('/api/budgets/suggestions'),
+
+  // Accounts
+  getAccounts: () =>
+    apiFetch<AccountResponse[]>('/api/accounts'),
+  createAccount: (data: AccountRequest) =>
+    apiFetch<AccountResponse>('/api/accounts', { method: 'POST', body: JSON.stringify(data) }),
+  updateAccount: (id: string, data: AccountRequest) =>
+    apiFetch<AccountResponse>(`/api/accounts/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteAccount: (id: string) =>
+    apiFetch<void>(`/api/accounts/${id}`, { method: 'DELETE' }),
+
+  // Incomes
+  getIncomes: () =>
+    apiFetch<IncomeResponse[]>('/api/incomes'),
+  createIncome: (data: IncomeRequest) =>
+    apiFetch<IncomeResponse>('/api/incomes', { method: 'POST', body: JSON.stringify(data) }),
+  updateIncome: (id: string, data: IncomeRequest) =>
+    apiFetch<IncomeResponse>(`/api/incomes/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteIncome: (id: string) =>
+    apiFetch<void>(`/api/incomes/${id}`, { method: 'DELETE' }),
 }

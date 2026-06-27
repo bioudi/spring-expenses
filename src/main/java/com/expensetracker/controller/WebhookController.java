@@ -4,10 +4,14 @@ import com.expensetracker.dto.ExpenseRequest;
 import com.expensetracker.dto.ExpenseResponse;
 import com.expensetracker.dto.WebhookBudgetsResponse;
 import com.expensetracker.dto.WebhookDashboardResponse;
+import com.expensetracker.dto.WebhookDashboardResponse.AccountBalanceEntry;
 import com.expensetracker.dto.WebhookDashboardResponse.CategoryEntry;
 import com.expensetracker.dto.WebhookDashboardResponse.MerchantEntry;
+import com.expensetracker.entity.Account;
+import com.expensetracker.entity.AccountType;
 import com.expensetracker.service.BudgetService;
 import com.expensetracker.service.ExpenseService;
+import com.expensetracker.repository.AccountRepository;
 import com.expensetracker.util.SecurityUtils;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +37,7 @@ public class WebhookController {
 
     private final ExpenseService expenseService;
     private final BudgetService budgetService;
+    private final AccountRepository accountRepository;
 
     @PostMapping("/expense")
     public ResponseEntity<ExpenseResponse> createExpense(
@@ -197,12 +202,40 @@ public class WebhookController {
         // Budget status for this month
         WebhookBudgetsResponse budgetStatus = budgetService.getWebhookBudgets(userId, referenceDate);
 
+        // Account balances
+        List<Account> accounts = accountRepository.findByUserIdOrderByCreatedAtAsc(userId);
+        BigDecimal totalAssets = BigDecimal.ZERO;
+        BigDecimal totalDebt = BigDecimal.ZERO;
+        List<AccountBalanceEntry> accountBalances = new ArrayList<>();
+
+        for (Account account : accounts) {
+            AccountBalanceEntry entry = AccountBalanceEntry.builder()
+                    .id(account.getId())
+                    .name(account.getName())
+                    .balance(account.getBalance())
+                    .type(account.getType())
+                    .build();
+            accountBalances.add(entry);
+
+            if (account.getType() == AccountType.CREDIT) {
+                totalDebt = totalDebt.add(account.getBalance());
+            } else {
+                totalAssets = totalAssets.add(account.getBalance());
+            }
+        }
+
+        BigDecimal netWorth = totalAssets.subtract(totalDebt);
+
         WebhookDashboardResponse response = WebhookDashboardResponse.builder()
                 .totalSpent(totalSpent)
                 .transactionCount(expenses.size())
                 .categoryBreakdown(categoryBreakdown)
                 .topMerchants(topMerchants)
                 .budgetStatus(budgetStatus)
+                .netWorth(netWorth)
+                .totalAssets(totalAssets)
+                .totalDebt(totalDebt)
+                .accountBalances(accountBalances)
                 .build();
 
         return ResponseEntity.ok(response);

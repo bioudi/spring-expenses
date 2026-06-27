@@ -189,6 +189,50 @@ export default function DashboardPage() {
         <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">{t('common.noData')}</div>
       ) : (
         <>
+          {/* Net Worth & Account Balances row */}
+          <div className="grid grid-cols-1 gap-4 px-4 lg:px-6 sm:grid-cols-2">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardDescription>{t('dashboard.netWorth')}</CardDescription>
+                <CardTitle className={cn(
+                  'text-3xl font-bold tabular-nums',
+                  (dashboard.netWorth ?? 0) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                )}>
+                  {formatMoney(dashboard.netWorth ?? 0, language)}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-green-600 dark:text-green-400 font-medium">{t('dashboard.assets')}: {formatMoney(dashboard.totalAssets ?? 0, language)}</span>
+                  <span className="text-red-600 dark:text-red-400 font-medium">{t('dashboard.debt')}: {formatMoney(dashboard.totalDebt ?? 0, language)}</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardDescription>{t('dashboard.accountBalances')}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {dashboard.accountBalances && dashboard.accountBalances.length > 0 ? (
+                  dashboard.accountBalances.map((account) => (
+                    <div key={account.id} className="flex items-center justify-between">
+                      <span className="text-sm font-medium">{account.name}</span>
+                      <span className={cn(
+                        'text-sm font-medium tabular-nums',
+                        account.type === 'CREDIT' ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'
+                      )}>
+                        {formatMoney(account.balance, language)}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-sm text-muted-foreground">{t('common.noData')}</div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
           {/* Stat Cards */}
           <div className="grid grid-cols-1 gap-4 px-4 lg:px-6 sm:grid-cols-2 xl:grid-cols-4">
             <Card className="@container/card">
