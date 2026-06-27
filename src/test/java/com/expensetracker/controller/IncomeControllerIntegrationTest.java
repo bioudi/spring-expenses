@@ -35,6 +35,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 class IncomeControllerIntegrationTest {
 
+    private static final String TEST_EMAIL = "income-integration@example.com";
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -61,16 +63,22 @@ class IncomeControllerIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        incomeRepository.deleteAll();
-        accountRepository.deleteAll();
-        userRepository.deleteAll();
+        // Clean up only this test's data to avoid interfering with other
+        // integration test classes running in the same JVM.
+        userRepository.findByEmail(TEST_EMAIL).ifPresent(user -> {
+            incomeRepository.deleteAll(
+                    incomeRepository.findByUserIdOrderByTimestampDesc(user.getId()));
+            accountRepository.deleteAll(
+                    accountRepository.findByUserIdOrderByCreatedAtAsc(user.getId()));
+            userRepository.delete(user);
+        });
 
         testUser = userRepository.save(User.builder()
-                .email("income-integration-" + UUID.randomUUID() + "@example.com")
-                .password("$2a$10$dummy.bcrypt.password.that.does.not.matter")
-                .displayName("Income Test User")
-                .apiKey(UUID.randomUUID().toString())
-                .build());
+                        .email(TEST_EMAIL)
+                        .password("$2a$10$dummy.bcrypt.password.that.does.not.matter")
+                        .displayName("Income Test User")
+                        .apiKey(UUID.randomUUID().toString())
+                        .build());
 
         testAccount = accountRepository.save(Account.builder()
                 .name("Test Checking")
