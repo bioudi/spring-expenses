@@ -87,6 +87,17 @@ export interface ChangePasswordRequest {
   newPassword: string
 }
 
+export type AccountType = 'CHEQUING' | 'SAVINGS' | 'CREDIT'
+
+export interface AccountResponse {
+  id: string
+  name: string
+  type: AccountType
+  balance: number
+  createdAt: string
+  updatedAt: string
+}
+
 export type RecurrenceFrequency = 'DAILY' | 'WEEKLY' | 'BI_WEEKLY' | 'MONTHLY'
 
 export type DayOfWeek = 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY'

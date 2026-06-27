@@ -14,6 +14,7 @@ export const en = {
   nav: {
     dashboard: 'Dashboard',
     expenses: 'Expenses',
+    accounts: 'Accounts',
     recurring: 'Recurring',
     budgets: 'Budgets',
     merchants: 'Merchants',
@@ -254,6 +255,18 @@ export const en = {
     createFromSuggestion: 'Create Budget',
     dismissSuggestions: 'Dismiss',
     failedSuggestions: 'Failed to load suggestions',
+  },
+  accounts: {
+    name: 'Account Name',
+    type: 'Type',
+    balance: 'Balance',
+    typeChequing: 'Chequing',
+    typeSavings: 'Savings',
+    typeCredit: 'Credit',
+    addAccount: 'Add Account',
+    noAccounts: 'No accounts yet.',
+    editAccount: 'Edit',
+    deleteAccount: 'Delete',
   },
   merchants: {
     title: 'Merchants',

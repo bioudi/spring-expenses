@@ -9,6 +9,7 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -46,4 +47,10 @@ public class ExpenseRequest {
     private LocalDateTime timestamp;
 
     private String notes;
+
+    /**
+     * Optional account this expense was charged against. May be null for
+     * legacy expenses or expenses that aren't tied to a specific account.
+     */
+    private UUID accountId;
 }

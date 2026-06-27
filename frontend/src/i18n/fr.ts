@@ -14,6 +14,7 @@ export const fr = {
   nav: {
     dashboard: 'Tableau de bord',
     expenses: 'Dépenses',
+    accounts: 'Comptes',
     recurring: 'Récurrentes',
     budgets: 'Budgets',
     merchants: 'Marchands',
@@ -254,6 +255,18 @@ export const fr = {
     createFromSuggestion: 'Créer un budget',
     dismissSuggestions: 'Fermer',
     failedSuggestions: 'Échec du chargement des suggestions',
+  },
+  accounts: {
+    name: 'Nom du compte',
+    type: 'Type',
+    balance: 'Solde',
+    typeChequing: 'Chèques',
+    typeSavings: 'Épargne',
+    typeCredit: 'Crédit',
+    addAccount: 'Ajouter un compte',
+    noAccounts: 'Aucun compte pour le moment.',
+    editAccount: 'Modifier',
+    deleteAccount: 'Supprimer',
   },
   merchants: {
     title: 'Marchands',

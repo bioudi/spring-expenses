@@ -38,7 +38,7 @@ public class WebhookController {
     public ResponseEntity<ExpenseResponse> createExpense(
             @Valid @RequestBody ExpenseRequest request
     ) {
-        log.info("Received webhook request: amount={}, merchant={}, cardName={}, card={}, name={}, category={}, notes={}, timestamp={}",
+        log.info("Received webhook request: amount={}, merchant={}, cardName={}, card={}, name={}, category={}, notes={}, timestamp={}, accountId={}",
                 request.getAmount(),
                 request.getMerchant(),
                 request.getCardName(),
@@ -46,7 +46,8 @@ public class WebhookController {
                 request.getName(),
                 request.getCategory(),
                 request.getNotes(),
-                request.getTimestamp());
+                request.getTimestamp(),
+                request.getAccountId());
 
         // userId is set by ApiKeyFilter via SecurityContext
         UUID userId = SecurityUtils.getCurrentUserId();

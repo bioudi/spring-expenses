@@ -46,6 +46,15 @@ public class Expense {
     @Column(name = "recurring_expense_id")
     private UUID recurringExpenseId;
 
+    /**
+     * Optional foreign key to an account (e.g. a bank account or card account).
+     * Stored as a raw UUID rather than a {@code @ManyToOne} association because
+     * the Account entity is not yet modelled — the column is intentionally
+     * nullable so existing expenses remain valid without an account.
+     */
+    @Column(name = "account_id")
+    private UUID accountId;
+
     @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")

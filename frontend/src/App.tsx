@@ -8,6 +8,7 @@ import LoginPage from '@/pages/LoginPage'
 import RegisterPage from '@/pages/RegisterPage'
 import DashboardPage from '@/pages/DashboardPage'
 import ExpensesPage from '@/pages/ExpensesPage'
+import AccountsPage from '@/pages/AccountsPage'
 import MerchantsPage from '@/pages/MerchantsPage'
 import SettingsPage from '@/pages/SettingsPage'
 import RecurringExpensesPage from '@/pages/RecurringExpensesPage'
@@ -25,6 +26,7 @@ export default function App() {
           <Route element={<AppLayout />}>
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/expenses" element={<ExpensesPage />} />
+            <Route path="/accounts" element={<AccountsPage />} />
             <Route path="/recurring" element={<RecurringExpensesPage />} />
             <Route path="/budgets" element={<BudgetsPage />} />
             <Route path="/merchants" element={<MerchantsPage />} />

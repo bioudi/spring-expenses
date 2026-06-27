@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { NetWorthCard } from '@/components/dashboard/NetWorthCard'
 import { api } from '@/lib/api'
 import { CATEGORY_COLORS } from '@/lib/categories'
 import { formatMoney, toISODate } from '@/lib/formatters'
@@ -189,6 +190,20 @@ export default function DashboardPage() {
         <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">{t('common.noData')}</div>
       ) : (
         <>
+          {/* Net Worth & Account Balances row */}
+          <div className="grid grid-cols-1 gap-4 px-4 lg:px-6 sm:grid-cols-2">
+            <NetWorthCard language={language} />
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardDescription>{t('dashboard.accountBalances')}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm text-muted-foreground">{t('common.noData')}</div>
+              </CardContent>
+            </Card>
+          </div>
+
           {/* Stat Cards */}
           <div className="grid grid-cols-1 gap-4 px-4 lg:px-6 sm:grid-cols-2 xl:grid-cols-4">
             <Card className="@container/card">

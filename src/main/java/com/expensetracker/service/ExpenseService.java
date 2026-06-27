@@ -77,6 +77,7 @@ public class ExpenseService {
                 .cardName(cardName)
                 .timestamp(resolveTimestampForCreate(request))
                 .notes(notes)
+                .accountId(request.getAccountId())
                 .user(userRef)
                 .build();
 
@@ -336,6 +337,11 @@ public class ExpenseService {
             notes = request.getName();
         }
         expense.setNotes(notes);
+
+        // accountId is optional; only overwrite when the caller explicitly supplies one
+        if (request.getAccountId() != null) {
+            expense.setAccountId(request.getAccountId());
+        }
 
         Expense saved = expenseRepository.save(expense);
         log.info("Updated expense {}: merchant='{}', category='{}', amount={}", id, saved.getMerchant(), saved.getCategory(), saved.getAmount());

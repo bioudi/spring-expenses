@@ -24,6 +24,7 @@ public class ExpenseResponse {
     private String notes;
     private LocalDateTime createdAt;
     private UUID recurringExpenseId;
+    private UUID accountId;
 
     public static ExpenseResponse fromEntity(Expense expense) {
         return ExpenseResponse.builder()
@@ -37,6 +38,7 @@ public class ExpenseResponse {
                 .notes(expense.getNotes())
                 .createdAt(expense.getCreatedAt())
                 .recurringExpenseId(expense.getRecurringExpenseId())
+                .accountId(expense.getAccountId())
                 .build();
     }
 }
