@@ -134,6 +134,24 @@ export default function IncomesPage() {
     }
   }
 
+  function handleDeleteClick(
+    e: React.MouseEvent<HTMLButtonElement>,
+    inc: IncomeResponse,
+  ) {
+    // Prevent the click from bubbling up to ancestors that may have
+    // their own handlers (e.g. future row-level click navigation).
+    e.stopPropagation()
+    setDeleteTarget(inc)
+  }
+
+  function handleEditClick(
+    e: React.MouseEvent<HTMLButtonElement>,
+    inc: IncomeResponse,
+  ) {
+    e.stopPropagation()
+    openEdit(inc)
+  }
+
   const accountMap = new Map(accounts.map(a => [a.id, a.name]))
 
   return (
@@ -197,10 +215,10 @@ export default function IncomesPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
-                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(inc)}>
+                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={(e) => handleEditClick(e, inc)}>
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
-                          <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => setDeleteTarget(inc)}>
+                          <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={(e) => handleDeleteClick(e, inc)}>
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>
@@ -231,8 +249,8 @@ export default function IncomesPage() {
                       {inc.accountId && <span className="text-xs text-muted-foreground">· {accountMap.get(inc.accountId) || inc.accountId}</span>}
                     </div>
                     <div className="flex gap-1">
-                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(inc)}><Pencil className="h-3.5 w-3.5" /></Button>
-                      <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => setDeleteTarget(inc)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={(e) => handleEditClick(e, inc)}><Pencil className="h-3.5 w-3.5" /></Button>
+                      <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={(e) => handleDeleteClick(e, inc)}><Trash2 className="h-3.5 w-3.5" /></Button>
                     </div>
                   </div>
                   {inc.notes && <p className="text-xs text-muted-foreground mt-2 truncate">{inc.notes}</p>}
