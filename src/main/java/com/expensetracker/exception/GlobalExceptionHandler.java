@@ -239,22 +239,41 @@ public class GlobalExceptionHandler {
         // (e.g. account type "Savings" instead of "SAVINGS"), surface a clearer
         // message than the generic "Malformed JSON".
         Throwable cause = ex.getCause();
-        if (cause instanceof InvalidFormatException ife && ife.getTargetType() != null && ife.getTargetType().isEnum()) {
+        if (cause instanceof InvalidFormatException ife && ife.getTargetType() != null) {
             String fieldName = ife.getPath().isEmpty() ? "value" :
                     ife.getPath().get(ife.getPath().size() - 1).getFieldName();
             String invalidValue = String.valueOf(ife.getValue());
-            String validValues = Arrays.stream(ife.getTargetType().getEnumConstants())
-                    .map(Object::toString)
-                    .collect(Collectors.joining(", "));
-            ErrorResponse response = ErrorResponse.builder()
-                    .timestamp(LocalDateTime.now())
-                    .status(HttpStatus.BAD_REQUEST.value())
-                    .error("Invalid " + ife.getTargetType().getSimpleName())
-                    .message("Invalid value '" + invalidValue + "' for " + fieldName +
-                            ". Valid values: " + validValues)
-                    .path(request.getRequestURI())
-                    .build();
-            return ResponseEntity.badRequest().body(response);
+
+            // Enum → list valid values, same shape as before.
+            if (ife.getTargetType().isEnum()) {
+                String validValues = Arrays.stream(ife.getTargetType().getEnumConstants())
+                        .map(Object::toString)
+                        .collect(Collectors.joining(", "));
+                ErrorResponse response = ErrorResponse.builder()
+                        .timestamp(LocalDateTime.now())
+                        .status(HttpStatus.BAD_REQUEST.value())
+                        .error("Invalid " + ife.getTargetType().getSimpleName())
+                        .message("Invalid value '" + invalidValue + "' for " + fieldName +
+                                ". Valid values: " + validValues)
+                        .path(request.getRequestURI())
+                        .build();
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            // UUID → clear "invalid format" message instead of generic "Malformed JSON".
+            if (UUID.class.isAssignableFrom(ife.getTargetType())) {
+                log.debug("Rejecting request to {} — {} '{}' is not a valid UUID",
+                        request.getRequestURI(), fieldName, invalidValue);
+                ErrorResponse response = ErrorResponse.builder()
+                        .timestamp(LocalDateTime.now())
+                        .status(HttpStatus.BAD_REQUEST.value())
+                        .error("Invalid " + fieldName + " format")
+                        .message("Invalid account_id format: '" + invalidValue +
+                                "' is not a valid UUID. Provide a value like 550e8400-e29b-41d4-a716-446655440000.")
+                        .path(request.getRequestURI())
+                        .build();
+                return ResponseEntity.badRequest().body(response);
+            }
         }
 
         ErrorResponse response = ErrorResponse.builder()
