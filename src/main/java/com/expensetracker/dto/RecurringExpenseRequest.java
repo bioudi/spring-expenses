@@ -9,6 +9,7 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -42,4 +43,6 @@ public class RecurringExpenseRequest {
     private LocalDate startDate;
 
     private LocalDate endDate;
+
+    private UUID accountId;
 }

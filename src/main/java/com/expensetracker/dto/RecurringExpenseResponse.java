@@ -29,6 +29,7 @@ public class RecurringExpenseResponse {
     private LocalDate endDate;
     private LocalDate nextOccurrence;
     private boolean active;
+    private UUID accountId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -46,6 +47,7 @@ public class RecurringExpenseResponse {
                 .endDate(entity.getEndDate())
                 .nextOccurrence(entity.getNextOccurrence())
                 .active(entity.isActive())
+                .accountId(entity.getAccount() != null ? entity.getAccount().getId() : null)
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .build();
