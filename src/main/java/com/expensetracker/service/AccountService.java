@@ -5,9 +5,11 @@ import com.expensetracker.dto.AccountResponse;
 import com.expensetracker.entity.Account;
 import com.expensetracker.entity.AccountType;
 import com.expensetracker.entity.User;
+import com.expensetracker.exception.AccountHasLinkedExpensesException;
 import com.expensetracker.exception.AccountNotFoundException;
 import com.expensetracker.exception.InsufficientFundsException;
 import com.expensetracker.repository.AccountRepository;
+import com.expensetracker.repository.ExpenseRepository;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +27,7 @@ import java.util.stream.Collectors;
 public class AccountService {
 
     private final AccountRepository accountRepository;
+    private final ExpenseRepository expenseRepository;
     private final EntityManager entityManager;
 
     @Transactional(readOnly = true)
@@ -78,6 +81,18 @@ public class AccountService {
     public AccountResponse deleteAccount(UUID id, UUID userId) {
         Account account = accountRepository.findByIdAndUserId(id, userId)
                 .orElseThrow(() -> new AccountNotFoundException(id));
+
+        // Reject deletion when expenses are still linked to this account. Without
+        // this guard the database foreign-key constraint on expenses.account_id
+        // throws a raw DataIntegrityViolationException, which would otherwise
+        // surface as a 500. The 400 + count here covers the common case. The
+        // {@code GlobalExceptionHandler} catches the rare race-condition FK
+        // violation as a belt-and-braces fallback.
+        long linkedExpenseCount = expenseRepository.countByAccountId(id);
+        if (linkedExpenseCount > 0) {
+            throw new AccountHasLinkedExpensesException(id, linkedExpenseCount);
+        }
+
         accountRepository.delete(account);
         log.info("Deleted account {}: name='{}', type={}", id, account.getName(), account.getType());
         return AccountResponse.fromEntity(account);

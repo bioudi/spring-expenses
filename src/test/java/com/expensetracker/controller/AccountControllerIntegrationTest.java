@@ -4,10 +4,13 @@ import com.expensetracker.config.DataMigrationRunner;
 import com.expensetracker.config.SchemaMigrationRunner;
 import com.expensetracker.dto.AccountRequest;
 import com.expensetracker.dto.AccountResponse;
+import com.expensetracker.dto.ExpenseRequest;
 import com.expensetracker.entity.Account;
 import com.expensetracker.entity.AccountType;
+import com.expensetracker.entity.Expense;
 import com.expensetracker.entity.User;
 import com.expensetracker.repository.AccountRepository;
+import com.expensetracker.repository.ExpenseRepository;
 import com.expensetracker.repository.UserRepository;
 import com.expensetracker.security.UserPrincipal;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -56,6 +59,7 @@ class AccountControllerIntegrationTest {
     @Autowired private ObjectMapper objectMapper;
     @Autowired private UserRepository userRepository;
     @Autowired private AccountRepository accountRepository;
+    @Autowired private ExpenseRepository expenseRepository;
 
     @MockBean private DataMigrationRunner dataMigrationRunner;
     @MockBean private SchemaMigrationRunner schemaMigrationRunner;
@@ -64,8 +68,15 @@ class AccountControllerIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        accountRepository.deleteAll();
-        userRepository.deleteAll();
+        // Clean up only this test's data to avoid interfering with other
+        // integration test classes running in the same JVM.
+        userRepository.findByEmail(TEST_EMAIL).ifPresent(user -> {
+            expenseRepository.deleteAll(
+                    expenseRepository.findAllByUserIdOrderByTimestampDesc(user.getId()));
+            accountRepository.deleteAll(
+                    accountRepository.findByUserIdOrderByCreatedAtAsc(user.getId()));
+            userRepository.delete(user);
+        });
 
         testUser = userRepository.save(User.builder()
                 .email(TEST_EMAIL)
@@ -222,6 +233,142 @@ class AccountControllerIntegrationTest {
                 .andExpect(jsonPath("$.name").value("Main Checking"));
 
         mockMvc.perform(delete("/api/accounts/{id}", id))
+                .andExpect(status().isOk());
+    }
+
+    // ─── Account deletion with linked expenses — the QA bug ───────────
+
+    @Test
+    void deleteAccount_withLinkedExpenses_returns400WithCount() throws Exception {
+        // QA bug t_d2d371ab: DELETE /api/accounts/:id returned 500 when
+        // expenses were still linked. Should be 400 with a clear message
+        // naming the linked-expense count.
+        Account account = accountRepository.save(Account.builder()
+                .name("Test Checking")
+                .balance(new BigDecimal("1000.00"))
+                .type(AccountType.BASE)
+                .user(testUser)
+                .build());
+
+        // Link 3 expenses to the account (one via the API, two directly via
+        // the repository so we don't depend on expense-side wiring).
+        mockMvc.perform(post("/api/expenses")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                ExpenseRequest.builder()
+                                        .amount(new BigDecimal("10.00"))
+                                        .merchant("Linked Merchant A")
+                                        .category("Other")
+                                        .paymentMethod("Card")
+                                        .accountId(account.getId())
+                                        .build())))
+                .andExpect(status().isCreated());
+
+        expenseRepository.save(Expense.builder()
+                .amount(new BigDecimal("20.00"))
+                .category("Other")
+                .merchant("Linked Merchant B")
+                .paymentMethod("Card")
+                .timestamp(java.time.LocalDateTime.now())
+                .account(account)
+                .user(testUser)
+                .build());
+        expenseRepository.save(Expense.builder()
+                .amount(new BigDecimal("30.00"))
+                .category("Other")
+                .merchant("Linked Merchant C")
+                .paymentMethod("Card")
+                .timestamp(java.time.LocalDateTime.now())
+                .account(account)
+                .user(testUser)
+                .build());
+
+        mockMvc.perform(delete("/api/accounts/{id}", account.getId()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Account Has Linked Expenses"))
+                .andExpect(jsonPath("$.message").value(
+                        org.hamcrest.Matchers.allOf(
+                                org.hamcrest.Matchers.containsString("Cannot delete account"),
+                                org.hamcrest.Matchers.containsString("3 expense(s)"))));
+
+        // Account must still exist
+        org.assertj.core.api.Assertions.assertThat(
+                accountRepository.findById(account.getId())).isPresent();
+    }
+
+    @Test
+    void deleteAccount_withSingleLinkedExpense_returns400CountingOne() throws Exception {
+        // Even a single linked expense should be rejected.
+        Account account = accountRepository.save(Account.builder()
+                .name("Lonely Checking")
+                .balance(new BigDecimal("500.00"))
+                .type(AccountType.BASE)
+                .user(testUser)
+                .build());
+
+        expenseRepository.save(Expense.builder()
+                .amount(new BigDecimal("5.00"))
+                .category("Other")
+                .merchant("Single")
+                .paymentMethod("Card")
+                .timestamp(java.time.LocalDateTime.now())
+                .account(account)
+                .user(testUser)
+                .build());
+
+        mockMvc.perform(delete("/api/accounts/{id}", account.getId()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(
+                        org.hamcrest.Matchers.containsString("1 expense(s)")));
+    }
+
+    @Test
+    void deleteAccount_afterAllExpensesRemoved_succeeds() throws Exception {
+        // The QA bug report explicitly mentioned this flow: create an account,
+        // create expenses, delete the expenses (which restores balances), then
+        // delete the account. Previously this returned 500; it should now
+        // succeed with 200.
+        Account account = accountRepository.save(Account.builder()
+                .name("Drained")
+                .balance(new BigDecimal("1000.00"))
+                .type(AccountType.BASE)
+                .user(testUser)
+                .build());
+
+        Expense linkedExpense = expenseRepository.save(Expense.builder()
+                .amount(new BigDecimal("50.00"))
+                .category("Other")
+                .merchant("To Be Deleted")
+                .paymentMethod("Card")
+                .timestamp(java.time.LocalDateTime.now())
+                .account(account)
+                .user(testUser)
+                .build());
+
+        // Delete the expense via the API (restores balance + removes the link).
+        mockMvc.perform(delete("/api/expenses/{id}", linkedExpense.getId()))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(delete("/api/accounts/{id}", account.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(account.getId().toString()));
+
+        org.assertj.core.api.Assertions.assertThat(
+                accountRepository.findById(account.getId())).isEmpty();
+    }
+
+    @Test
+    void deleteAccount_withNoExpensesAndNoBalance_works() throws Exception {
+        // Regression guard: a plain empty account should still delete fine.
+        Account account = accountRepository.save(Account.builder()
+                .name("Empty")
+                .balance(BigDecimal.ZERO)
+                .type(AccountType.BASE)
+                .user(testUser)
+                .build());
+
+        mockMvc.perform(delete("/api/accounts/{id}", account.getId()))
                 .andExpect(status().isOk());
     }
 }
