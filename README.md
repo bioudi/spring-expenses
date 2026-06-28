@@ -1,6 +1,6 @@
 # Expense Tracker API
 
-A Spring Boot REST API for tracking expenses with webhook support and Docker deployment.
+A Spring Boot REST API for tracking expenses with webhook support and Docker.
 
 ## Features
 
