@@ -64,16 +64,22 @@ class IncomeControllerIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        incomeRepository.deleteAll();
-        accountRepository.deleteAll();
-        userRepository.deleteAll();
+        // Clean up only this test's data to avoid interfering with other
+        // integration test classes running in the same JVM.
+        userRepository.findByEmail(TEST_EMAIL).ifPresent(user -> {
+            incomeRepository.deleteAll(
+                    incomeRepository.findByUserIdOrderByTimestampDesc(user.getId()));
+            accountRepository.deleteAll(
+                    accountRepository.findByUserIdOrderByCreatedAtAsc(user.getId()));
+            userRepository.delete(user);
+        });
 
         testUser = userRepository.save(User.builder()
-                .email(TEST_EMAIL)
-                .password("$2a$10$dummy.bcrypt.password.that.does.not.matter")
-                .displayName("Income Test User")
-                .apiKey(UUID.randomUUID().toString())
-                .build());
+                        .email(TEST_EMAIL)
+                        .password("$2a$10$dummy.bcrypt.password.that.does.not.matter")
+                        .displayName("Income Test User")
+                        .apiKey(UUID.randomUUID().toString())
+                        .build());
 
         testAccount = accountRepository.save(Account.builder()
                 .name("Test Checking")
@@ -113,7 +119,7 @@ class IncomeControllerIntegrationTest {
                 .notes("June 27 payroll")
                 .build();
 
-        String body = mockMvc.perform(post("/api/incomes")
+        mockMvc.perform(post("/api/incomes")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -122,8 +128,7 @@ class IncomeControllerIntegrationTest {
                 .andExpect(jsonPath("$.type").value("TRANSFER"))
                 .andExpect(jsonPath("$.category").value("PAYCHECK"))
                 .andExpect(jsonPath("$.amount").value(2500.00))
-                .andExpect(jsonPath("$.accountId").isEmpty())
-                .andReturn().getResponse().getContentAsString();
+                .andExpect(jsonPath("$.accountId").isEmpty());
     }
 
     @Test
@@ -136,12 +141,11 @@ class IncomeControllerIntegrationTest {
                 .accountId(testAccount.getId())
                 .build();
 
-        String body = mockMvc.perform(post("/api/incomes")
+        mockMvc.perform(post("/api/incomes")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.accountId").value(testAccount.getId().toString()))
-                .andReturn().getResponse().getContentAsString();
+                .andExpect(jsonPath("$.accountId").value(testAccount.getId().toString()));
 
         // Verify account balance increased
         Account updated = accountRepository.findById(testAccount.getId()).orElseThrow();

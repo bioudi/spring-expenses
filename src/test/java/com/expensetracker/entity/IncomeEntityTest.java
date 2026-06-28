@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.metamodel.EntityType;
+import com.expensetracker.repository.IncomeRepository;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -30,6 +31,7 @@ class IncomeEntityTest {
     private IncomeRepository repo;
 
     @Test
+    @Transactional
     void entityIsRegisteredAndPersists() {
         // Verify the entity is registered with JPA
         EntityType<Income> meta = em.getMetamodel().entity(Income.class);
@@ -71,6 +73,7 @@ class IncomeEntityTest {
     }
 
     @Test
+    @Transactional
     void accountIdIsOptional() {
         User user = User.builder()
                 .email("no-account@example.com")

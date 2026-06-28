@@ -108,6 +108,14 @@ export default function ExpensesPage() {
     })
   }, [expenses, filterMerchant, filterMinAmount, filterMaxAmount, filterCardName, filterPaymentMethod, filterCategory, filterNote])
 
+  const accountMap = useMemo(() => {
+    const map = new Map<string, AccountResponse>()
+    for (const a of accounts) {
+      map.set(a.id, a)
+    }
+    return map
+  }, [accounts])
+
   function clearFilters() {
     setFilterMerchant('')
     setFilterMinAmount('')
@@ -385,6 +393,7 @@ export default function ExpensesPage() {
                     <TableHead>{t('expenses.category')}</TableHead>
                     <TableHead className="text-right">{t('expenses.amount')}</TableHead>
                     <TableHead>{t('expenses.paymentCol')}</TableHead>
+                    <TableHead>{t('expenses.account')}</TableHead>
                     <TableHead>{t('expenses.notes')}</TableHead>
                     <TableHead className="text-right w-[100px]">{t('common.actions')}</TableHead>
                   </TableRow>
@@ -410,6 +419,13 @@ export default function ExpensesPage() {
                       <TableCell className="text-right font-medium">{formatMoney(exp.amount, language)}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {t(`payment.${exp.paymentMethod}`)}{exp.cardName ? ` · ${exp.cardName}` : ''}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {exp.accountId && accountMap.has(exp.accountId) ? (
+                          <span>{accountMap.get(exp.accountId)!.name} <span className="text-xs text-muted-foreground/60">({t(`accountTypes.${accountMap.get(exp.accountId)!.type}`)})</span></span>
+                        ) : (
+                          <span className="text-muted-foreground/50">—</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">{exp.notes}</TableCell>
                       <TableCell className="text-right">
@@ -466,6 +482,11 @@ export default function ExpensesPage() {
                     </div>
                   </div>
                   {exp.notes && <p className="text-xs text-muted-foreground mt-2 truncate">{exp.notes}</p>}
+                  {exp.accountId && accountMap.has(exp.accountId) && (
+                    <p className="text-xs text-muted-foreground/60 mt-1">
+                      {accountMap.get(exp.accountId)!.name} ({t(`accountTypes.${accountMap.get(exp.accountId)!.type}`)})
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             ))}
@@ -530,6 +551,19 @@ export default function ExpensesPage() {
             <div className="space-y-2">
               <Label>{t('expenses.dateTime')}</Label>
               <Input type="datetime-local" value={timestamp} onChange={(e) => setTimestamp(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>{t('expenses.account')}</Label>
+              <select
+                value={accountId}
+                onChange={(e) => setAccountId(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                <option value="">— {t('expenses.noAccount')} —</option>
+                {accounts.map((a) => (
+                  <option key={a.id} value={a.id}>{a.name} ({t(`accountTypes.${a.type}`)})</option>
+                ))}
+              </select>
             </div>
             <div className="space-y-2">
               <Label>{t('expenses.notes')}</Label>
