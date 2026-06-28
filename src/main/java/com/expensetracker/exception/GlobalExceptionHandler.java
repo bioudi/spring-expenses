@@ -4,6 +4,7 @@ import com.expensetracker.dto.ErrorResponse;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -113,6 +114,58 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }
 
+    /**
+     * Maps {@link AccountHasLinkedExpensesException} to a 400 with a clear
+     * message naming the account id and the number of linked expenses. This
+     * is the contract advertised by {@code DELETE /api/accounts/:id} — the
+     * 500 that preceded this handler masked the real cause (foreign-key
+     * violation) behind a generic "An unexpected error occurred".
+     */
+    @ExceptionHandler(AccountHasLinkedExpensesException.class)
+    public ResponseEntity<ErrorResponse> handleAccountHasLinkedExpensesException(
+            AccountHasLinkedExpensesException ex,
+            HttpServletRequest request
+    ) {
+        ErrorResponse response = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error("Account Has Linked Expenses")
+                .message(ex.getMessage())
+                .path(request.getRequestURI())
+                .build();
+
+        return ResponseEntity.badRequest().body(response);
+    }
+
+    /**
+     * Safety net for foreign-key violations that escape the service layer
+     * (e.g. a race condition where a concurrent request links a row between
+     * the service's pre-check and its delete). Without this handler these
+     * surface as raw 500s with a generic message; with it, we return a 400
+     * whose message names the violated constraint so the caller knows which
+     * linked resource to clean up.
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrityViolationException(
+            DataIntegrityViolationException ex,
+            HttpServletRequest request
+    ) {
+        String message = ex.getMostSpecificCause() != null
+                ? ex.getMostSpecificCause().getMessage()
+                : ex.getMessage();
+        log.warn("Data-integrity violation at {}: {}", request.getRequestURI(), message);
+
+        ErrorResponse response = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error("Data Integrity Violation")
+                .message("Operation violates a database constraint: " + message)
+                .path(request.getRequestURI())
+                .build();
+
+        return ResponseEntity.badRequest().body(response);
+    }
+
     @ExceptionHandler(BudgetNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleBudgetNotFoundException(
             BudgetNotFoundException ex,
@@ -186,22 +239,41 @@ public class GlobalExceptionHandler {
         // (e.g. account type "Savings" instead of "SAVINGS"), surface a clearer
         // message than the generic "Malformed JSON".
         Throwable cause = ex.getCause();
-        if (cause instanceof InvalidFormatException ife && ife.getTargetType() != null && ife.getTargetType().isEnum()) {
+        if (cause instanceof InvalidFormatException ife && ife.getTargetType() != null) {
             String fieldName = ife.getPath().isEmpty() ? "value" :
                     ife.getPath().get(ife.getPath().size() - 1).getFieldName();
             String invalidValue = String.valueOf(ife.getValue());
-            String validValues = Arrays.stream(ife.getTargetType().getEnumConstants())
-                    .map(Object::toString)
-                    .collect(Collectors.joining(", "));
-            ErrorResponse response = ErrorResponse.builder()
-                    .timestamp(LocalDateTime.now())
-                    .status(HttpStatus.BAD_REQUEST.value())
-                    .error("Invalid " + ife.getTargetType().getSimpleName())
-                    .message("Invalid value '" + invalidValue + "' for " + fieldName +
-                            ". Valid values: " + validValues)
-                    .path(request.getRequestURI())
-                    .build();
-            return ResponseEntity.badRequest().body(response);
+
+            // Enum → list valid values, same shape as before.
+            if (ife.getTargetType().isEnum()) {
+                String validValues = Arrays.stream(ife.getTargetType().getEnumConstants())
+                        .map(Object::toString)
+                        .collect(Collectors.joining(", "));
+                ErrorResponse response = ErrorResponse.builder()
+                        .timestamp(LocalDateTime.now())
+                        .status(HttpStatus.BAD_REQUEST.value())
+                        .error("Invalid " + ife.getTargetType().getSimpleName())
+                        .message("Invalid value '" + invalidValue + "' for " + fieldName +
+                                ". Valid values: " + validValues)
+                        .path(request.getRequestURI())
+                        .build();
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            // UUID → clear "invalid format" message instead of generic "Malformed JSON".
+            if (UUID.class.isAssignableFrom(ife.getTargetType())) {
+                log.debug("Rejecting request to {} — {} '{}' is not a valid UUID",
+                        request.getRequestURI(), fieldName, invalidValue);
+                ErrorResponse response = ErrorResponse.builder()
+                        .timestamp(LocalDateTime.now())
+                        .status(HttpStatus.BAD_REQUEST.value())
+                        .error("Invalid " + fieldName + " format")
+                        .message("Invalid account_id format: '" + invalidValue +
+                                "' is not a valid UUID. Provide a value like 550e8400-e29b-41d4-a716-446655440000.")
+                        .path(request.getRequestURI())
+                        .build();
+                return ResponseEntity.badRequest().body(response);
+            }
         }
 
         ErrorResponse response = ErrorResponse.builder()
