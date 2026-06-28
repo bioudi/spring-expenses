@@ -247,15 +247,21 @@ class RecurringExpenseControllerIntegrationTest {
     // ─── Regression: accountId propagates to generated Expenses ─────
 
     @Test
-    void createRecurringExpense_startingToday_generatesExpenseWithSameAccountId() throws Exception {
-        // A template whose startDate is today/past causes an immediate expense
-        // to be materialized. That generated expense must carry the template's
-        // accountId so the recurring template's account carries through to
-        // the actual expense rows (the whole point of the field).
-        LocalDate today = LocalDate.now();
-        RecurringExpenseRequest request = baseMonthlyRequest()
+    void createRecurringExpense_startingYesterday_generatesExpenseWithSameAccountId() throws Exception {
+        // A template whose startDate is yesterday causes an immediate expense
+        // to be materialized (any past-or-today firstOccurrence triggers it).
+        // The generated expense must carry the template's accountId so the
+        // recurring template's account carries through to the actual expense
+        // rows — the whole point of the field.
+        LocalDate yesterday = LocalDate.now().minusDays(1);
+        RecurringExpenseRequest request = RecurringExpenseRequest.builder()
+                .amount(new BigDecimal("15.99"))
+                .merchant("Netflix")
+                .category("Streaming")
+                .frequency(RecurrenceFrequency.WEEKLY)
+                .dayOfWeek(yesterday.getDayOfWeek())
+                .startDate(yesterday)
                 .accountId(testAccount.getId())
-                .startDate(today)
                 .build();
 
         String body = mockMvc.perform(post("/api/recurring-expenses")
@@ -273,7 +279,7 @@ class RecurringExpenseControllerIntegrationTest {
                 .stream()
                 .filter(e -> templateId.equals(e.getRecurringExpenseId()))
                 .toList();
-        assertThat(generated).as("template starting today should materialize ≥1 expense")
+        assertThat(generated).as("template starting yesterday should materialize ≥1 expense")
                 .isNotEmpty();
         assertThat(generated)
                 .allSatisfy(e -> assertThat(e.getAccount()).isNotNull());
