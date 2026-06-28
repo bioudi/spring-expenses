@@ -201,3 +201,29 @@ export interface RecurringExpenseResponse {
   updatedAt: string
   accountId: string | null
 }
+
+// Transfer types — mirrors backend TransferRequest / TransferResponse.
+// The response carries an `AccountSnapshot` per side so the success card can
+// render post-transfer balances without an extra GET.
+export interface TransferRequest {
+  fromAccountId: string
+  toAccountId: string
+  amount: number
+  description?: string | null
+}
+
+export interface TransferAccountSnapshot {
+  id: string
+  name: string
+  type: AccountType
+  balance: number
+}
+
+export interface TransferResponse {
+  transferId: string
+  fromAccount: TransferAccountSnapshot
+  toAccount: TransferAccountSnapshot
+  amount: number
+  description: string | null
+  timestamp: string
+}
