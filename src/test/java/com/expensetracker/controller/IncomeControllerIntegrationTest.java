@@ -21,6 +21,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.test.context.TestSecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
@@ -87,16 +88,18 @@ class IncomeControllerIntegrationTest {
                 .user(testUser)
                 .build());
 
-        // Set up security context with a proper UserPrincipal
+        // Install a SecurityContext that SecurityUtils.getCurrentUserId() can resolve.
+        // Done here (not via @WithUserDetails) because @WithUserDetails runs in
+        // Spring's beforeTestMethod phase, BEFORE this @BeforeEach — it can't see
+        // a user that doesn't exist yet.
         UserPrincipal principal = new UserPrincipal(
                 testUser.getId(),
                 testUser.getEmail(),
                 testUser.getPassword(),
-                List.of(new SimpleGrantedAuthority("ROLE_USER"))
-        );
-        SecurityContextHolder.getContext().setAuthentication(
-                new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities())
-        );
+                List.of(new SimpleGrantedAuthority("ROLE_USER")));
+        UsernamePasswordAuthenticationToken auth =
+                new UsernamePasswordAuthenticationToken(principal, "N/A", principal.getAuthorities());
+        TestSecurityContextHolder.setAuthentication(auth);
     }
 
     @AfterEach
