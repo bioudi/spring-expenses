@@ -134,10 +134,9 @@ class TransferControllerIntegrationTest {
     @Test
     void transfer_nonCreditToCredit_paysCreditCard() throws Exception {
         Account checking = createAccount("Checking", new BigDecimal("2000.00"), AccountType.BASE);
-        // CREDIT accounts store the owed balance as a positive number — 500
-        // means $500 of debt. Paying it down means the CREDIT "balance" goes
-        // down because less is owed.
-        Account visa = createAccount("Visa", new BigDecimal("500.00"), AccountType.CREDIT);
+        // CREDIT balance is signed: a negative value represents debt owed.
+        // Visa starts at −$500 (the user owes $500).
+        Account visa = createAccount("Visa", new BigDecimal("-500.00"), AccountType.CREDIT);
 
         TransferRequest request = TransferRequest.builder()
                 .fromAccountId(checking.getId())
@@ -151,23 +150,25 @@ class TransferControllerIntegrationTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.fromAccount.balance").value(1800.00))
-                // CREDIT account "balance" is the debt owed — paying it down
-                // reduces the balance.
-                .andExpect(jsonPath("$.toAccount.balance").value(300.00));
+                // Paying the card moves the debt balance toward zero — visa
+                // goes from −500 to −300.
+                .andExpect(jsonPath("$.toAccount.balance").value(-300.00));
 
         assertThat(accountRepository.findById(checking.getId()).orElseThrow().getBalance())
                 .isEqualByComparingTo("1800.00");
         assertThat(accountRepository.findById(visa.getId()).orElseThrow().getBalance())
-                .isEqualByComparingTo("300.00");
+                .isEqualByComparingTo("-300.00");
     }
 
     // ─── Case 3: CREDIT → non-CREDIT (cash advance) ──────────────────
 
     @Test
     void transfer_creditToNonCredit_addsToDestinationEvenWhenSourceDebtGrows() throws Exception {
-        // Source is a CREDIT account starting with $100 of debt. The transfer
-        // adds $50 to its debt (no balance guard on CREDIT sources).
-        Account visa = createAccount("Visa", new BigDecimal("100.00"), AccountType.CREDIT);
+        // Source CREDIT starts at −$100 (the user owes $100). Cash advance
+        // of $50 makes the debt worse (more negative) while adding to the
+        // destination — no balance guard fires because CREDIT sources can
+        // grow debt freely.
+        Account visa = createAccount("Visa", new BigDecimal("-100.00"), AccountType.CREDIT);
         Account checking = createAccount("Checking", new BigDecimal("0.00"), AccountType.BASE);
 
         TransferRequest request = TransferRequest.builder()
@@ -181,11 +182,11 @@ class TransferControllerIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.fromAccount.balance").value(150.00))
+                .andExpect(jsonPath("$.fromAccount.balance").value(-150.00))
                 .andExpect(jsonPath("$.toAccount.balance").value(50.00));
 
         assertThat(accountRepository.findById(visa.getId()).orElseThrow().getBalance())
-                .isEqualByComparingTo("150.00");
+                .isEqualByComparingTo("-150.00");
         assertThat(accountRepository.findById(checking.getId()).orElseThrow().getBalance())
                 .isEqualByComparingTo("50.00");
     }
@@ -194,8 +195,10 @@ class TransferControllerIntegrationTest {
 
     @Test
     void transfer_creditToCredit_movesDebt() throws Exception {
-        Account visa = createAccount("Visa", new BigDecimal("300.00"), AccountType.CREDIT);
-        Account mastercard = createAccount("Mastercard", new BigDecimal("100.00"), AccountType.CREDIT);
+        // Both cards carry debt (negative balances). Moving $75 from visa to
+        // mastercard makes visa more negative and mastercard less negative.
+        Account visa = createAccount("Visa", new BigDecimal("-300.00"), AccountType.CREDIT);
+        Account mastercard = createAccount("Mastercard", new BigDecimal("-100.00"), AccountType.CREDIT);
 
         TransferRequest request = TransferRequest.builder()
                 .fromAccountId(visa.getId())
@@ -208,13 +211,13 @@ class TransferControllerIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.fromAccount.balance").value(375.00))
-                .andExpect(jsonPath("$.toAccount.balance").value(25.00));
+                .andExpect(jsonPath("$.fromAccount.balance").value(-375.00))
+                .andExpect(jsonPath("$.toAccount.balance").value(-25.00));
 
         assertThat(accountRepository.findById(visa.getId()).orElseThrow().getBalance())
-                .isEqualByComparingTo("375.00");
+                .isEqualByComparingTo("-375.00");
         assertThat(accountRepository.findById(mastercard.getId()).orElseThrow().getBalance())
-                .isEqualByComparingTo("25.00");
+                .isEqualByComparingTo("-25.00");
     }
 
     // ─── Error: same account ─────────────────────────────────────────
