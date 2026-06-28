@@ -1,4 +1,4 @@
-name: Build & Push Docker Image
+name: Build, Push & Deploy
 
 on:
   push:
@@ -9,7 +9,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-and-push:
+  build-push-deploy:
     runs-on: ubuntu-latest
     environment: Build
 
@@ -51,3 +51,14 @@ jobs:
         run: |
           docker push bioudi/spendifi:${{ github.sha }}
           docker push bioudi/spendifi:latest
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          script: |
+            cd /docker/spendifi
+            docker compose pull
+            docker compose up -d
