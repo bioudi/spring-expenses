@@ -265,7 +265,7 @@ export const fr = {
     to: 'Vers',
     selectAccount: 'Sélectionnez un compte',
     amount: 'Montant',
-    description: 'Description',
+    descriptionLabel: 'Description',
     placeholderDescription: 'Description optionnelle (ex. « Paiement Visa »)',
     submit: 'Virer',
     swap: 'Inverser la source et la destination',

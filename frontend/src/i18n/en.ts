@@ -265,7 +265,7 @@ export const en = {
     to: 'To',
     selectAccount: 'Select an account',
     amount: 'Amount',
-    description: 'Description',
+    descriptionLabel: 'Description',
     placeholderDescription: 'Optional description (e.g. "Pay Visa")',
     submit: 'Transfer',
     swap: 'Swap from and to',

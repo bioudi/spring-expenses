@@ -206,7 +206,7 @@ export default function TransfersPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="transfer-description">{t('transfers.description')}</Label>
+                  <Label htmlFor="transfer-description">{t('transfers.descriptionLabel')}</Label>
                   <Textarea
                     id="transfer-description"
                     value={description}
