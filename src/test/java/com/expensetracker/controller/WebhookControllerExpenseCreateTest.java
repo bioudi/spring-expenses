@@ -108,7 +108,7 @@ class WebhookControllerExpenseCreateTest {
                     .amount(new BigDecimal("42.50"))
                     .merchant("Walmart")
                     .category("Groceries")
-                    .paymentMethod("Card")
+                    
                     .accountId(testAccount.getId())
                     .build();
 
@@ -141,7 +141,7 @@ class WebhookControllerExpenseCreateTest {
                     .amount(new BigDecimal("15.00"))
                     .merchant("Coffee Shop")
                     .category("Coffee & Cafes")
-                    .paymentMethod("Cash")
+                    
                     .build();
 
             mockMvc.perform(post("/api/webhook/expense")
@@ -178,7 +178,7 @@ class WebhookControllerExpenseCreateTest {
                     .amount(new BigDecimal("75.00"))
                     .merchant("Amazon")
                     .category("Electronics")
-                    .paymentMethod("Card")
+                    
                     .accountId(credit.getId())
                     .build();
 
@@ -209,7 +209,7 @@ class WebhookControllerExpenseCreateTest {
                     .amount(new BigDecimal("30.00"))
                     .merchant("Ghost Merchant")
                     .category("Other")
-                    .paymentMethod("Cash")
+                    
                     .accountId(ghostId)
                     .build();
 
@@ -252,7 +252,7 @@ class WebhookControllerExpenseCreateTest {
                     .amount(new BigDecimal("20.00"))
                     .merchant("Cross-user")
                     .category("Other")
-                    .paymentMethod("Cash")
+                    
                     .accountId(otherAccount.getId())
                     .build();
 

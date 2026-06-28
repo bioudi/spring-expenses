@@ -114,7 +114,7 @@ class ExpenseControllerIntegrationTest {
                 .amount(new BigDecimal("45.00"))
                 .merchant("Walmart")
                 .category("Groceries")
-                .paymentMethod("Cash")
+                
                 .build();
 
         mockMvc.perform(post("/api/expenses")
@@ -133,7 +133,7 @@ class ExpenseControllerIntegrationTest {
                 .amount(new BigDecimal("150.00"))
                 .merchant("Costco")
                 .category("Groceries")
-                .paymentMethod("Card")
+                
                 .accountId(testAccount.getId())
                 .build();
 
@@ -161,7 +161,7 @@ class ExpenseControllerIntegrationTest {
                 .amount(new BigDecimal("200.00"))
                 .merchant("Amazon")
                 .category("Electronics")
-                .paymentMethod("Card")
+                
                 .accountId(creditAccount.getId())
                 .build();
 
@@ -182,7 +182,7 @@ class ExpenseControllerIntegrationTest {
                 .amount(new BigDecimal("999999.00"))
                 .merchant("QA Test")
                 .category("Other")
-                .paymentMethod("Card")
+                
                 .accountId(testAccount.getId())
                 .build();
 
@@ -206,7 +206,7 @@ class ExpenseControllerIntegrationTest {
                 .amount(new BigDecimal("1000.00"))
                 .merchant("Edge Case")
                 .category("Other")
-                .paymentMethod("Card")
+                
                 .accountId(testAccount.getId())
                 .build();
 
@@ -233,7 +233,7 @@ class ExpenseControllerIntegrationTest {
                 .amount(new BigDecimal("5000.00"))
                 .merchant("Big Spender")
                 .category("Other")
-                .paymentMethod("Card")
+                
                 .accountId(creditAccount.getId())
                 .build();
 
@@ -270,7 +270,7 @@ class ExpenseControllerIntegrationTest {
                 .amount(new BigDecimal("100.00"))
                 .merchant("Grocery")
                 .category("Groceries")
-                .paymentMethod("Card")
+                
                 .accountId(testAccount.getId())
                 .build();
 
@@ -290,7 +290,7 @@ class ExpenseControllerIntegrationTest {
                 .amount(new BigDecimal("150.00"))
                 .merchant("Updated Grocery")
                 .category("Groceries")
-                .paymentMethod("Card")
+                
                 .accountId(testAccount.getId())
                 .build();
 
@@ -320,7 +320,7 @@ class ExpenseControllerIntegrationTest {
                 .amount(new BigDecimal("300.00"))
                 .merchant("Best Buy")
                 .category("Electronics")
-                .paymentMethod("Card")
+                
                 .accountId(testAccount.getId())
                 .build();
 
@@ -340,7 +340,7 @@ class ExpenseControllerIntegrationTest {
                 .amount(new BigDecimal("250.00"))
                 .merchant("Best Buy")
                 .category("Electronics")
-                .paymentMethod("Card")
+                
                 .accountId(secondAccount.getId())
                 .build();
 
@@ -363,7 +363,7 @@ class ExpenseControllerIntegrationTest {
                 .amount(new BigDecimal("75.00"))
                 .merchant("Restaurant")
                 .category("Restaurants")
-                .paymentMethod("Card")
+                
                 .accountId(testAccount.getId())
                 .build();
 
@@ -380,7 +380,7 @@ class ExpenseControllerIntegrationTest {
                 .amount(new BigDecimal("75.00"))
                 .merchant("Restaurant")
                 .category("Restaurants")
-                .paymentMethod("Cash")
+                
                 .build();
 
         mockMvc.perform(put("/api/expenses/{id}", created.getId())
@@ -400,7 +400,7 @@ class ExpenseControllerIntegrationTest {
                 .amount(new BigDecimal("100.00"))
                 .merchant("Lunch")
                 .category("Restaurants")
-                .paymentMethod("Card")
+                
                 .accountId(testAccount.getId())
                 .build();
 
@@ -428,7 +428,7 @@ class ExpenseControllerIntegrationTest {
                 .amount(new BigDecimal("999.00"))
                 .merchant("Lunch")
                 .category("Restaurants")
-                .paymentMethod("Card")
+                
                 .accountId(savings.getId())
                 .build();
 
@@ -454,7 +454,7 @@ class ExpenseControllerIntegrationTest {
                 .amount(new BigDecimal("50.00"))
                 .merchant("Gas Station")
                 .category("Gas & Fuel")
-                .paymentMethod("Card")
+                
                 .accountId(testAccount.getId())
                 .build();
 
@@ -483,7 +483,7 @@ class ExpenseControllerIntegrationTest {
                 .amount(new BigDecimal("30.00"))
                 .merchant("Coffee Shop")
                 .category("Coffee & Cafes")
-                .paymentMethod("Cash")
+                
                 .build();
 
         String createBody = mockMvc.perform(post("/api/expenses")
@@ -510,7 +510,7 @@ class ExpenseControllerIntegrationTest {
                 .amount(new BigDecimal("99.99"))
                 .merchant("Amazon")
                 .category("Electronics")
-                .paymentMethod("Card")
+                
                 .accountId(testAccount.getId())
                 .build();
 
@@ -533,7 +533,7 @@ class ExpenseControllerIntegrationTest {
                 .amount(new BigDecimal("200.00"))
                 .merchant("Test")
                 .category("Other")
-                .paymentMethod("Card")
+                
                 .accountId(testAccount.getId())
                 .build();
 

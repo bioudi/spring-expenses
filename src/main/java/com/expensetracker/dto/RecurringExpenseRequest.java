@@ -27,10 +27,6 @@ public class RecurringExpenseRequest {
 
     private String category;
 
-    private String paymentMethod;
-
-    private String cardName;
-
     private String notes;
 
     @NotNull(message = "Frequency is required")

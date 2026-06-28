@@ -43,10 +43,9 @@ public class WebhookController {
     public ResponseEntity<?> createExpense(
             @Valid @RequestBody ExpenseRequest request
     ) {
-        log.info("Received webhook request: amount={}, merchant={}, cardName={}, card={}, name={}, category={}, notes={}, timestamp={}, accountId={}",
+        log.info("Received webhook request: amount={}, merchant={}, card={}, name={}, category={}, notes={}, timestamp={}, accountId={}",
                 request.getAmount(),
                 request.getMerchant(),
-                request.getCardName(),
                 request.getCard(),
                 request.getName(),
                 request.getCategory(),

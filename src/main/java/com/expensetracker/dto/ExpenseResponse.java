@@ -18,8 +18,6 @@ public class ExpenseResponse {
     private BigDecimal amount;
     private String category;
     private String merchant;
-    private String paymentMethod;
-    private String cardName;
     private LocalDateTime timestamp;
     private String notes;
     private LocalDateTime createdAt;
@@ -32,8 +30,6 @@ public class ExpenseResponse {
                 .amount(expense.getAmount())
                 .category(expense.getCategory())
                 .merchant(expense.getMerchant())
-                .paymentMethod(expense.getPaymentMethod())
-                .cardName(expense.getCardName())
                 .timestamp(expense.getTimestamp())
                 .notes(expense.getNotes())
                 .createdAt(expense.getCreatedAt())

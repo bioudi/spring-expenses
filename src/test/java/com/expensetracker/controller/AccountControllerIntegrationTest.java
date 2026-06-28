@@ -259,7 +259,7 @@ class AccountControllerIntegrationTest {
                                         .amount(new BigDecimal("10.00"))
                                         .merchant("Linked Merchant A")
                                         .category("Other")
-                                        .paymentMethod("Card")
+                                        
                                         .accountId(account.getId())
                                         .build())))
                 .andExpect(status().isCreated());
@@ -268,7 +268,7 @@ class AccountControllerIntegrationTest {
                 .amount(new BigDecimal("20.00"))
                 .category("Other")
                 .merchant("Linked Merchant B")
-                .paymentMethod("Card")
+                
                 .timestamp(java.time.LocalDateTime.now())
                 .account(account)
                 .user(testUser)
@@ -277,7 +277,7 @@ class AccountControllerIntegrationTest {
                 .amount(new BigDecimal("30.00"))
                 .category("Other")
                 .merchant("Linked Merchant C")
-                .paymentMethod("Card")
+                
                 .timestamp(java.time.LocalDateTime.now())
                 .account(account)
                 .user(testUser)
@@ -311,7 +311,7 @@ class AccountControllerIntegrationTest {
                 .amount(new BigDecimal("5.00"))
                 .category("Other")
                 .merchant("Single")
-                .paymentMethod("Card")
+                
                 .timestamp(java.time.LocalDateTime.now())
                 .account(account)
                 .user(testUser)
@@ -340,7 +340,7 @@ class AccountControllerIntegrationTest {
                 .amount(new BigDecimal("50.00"))
                 .category("Other")
                 .merchant("To Be Deleted")
-                .paymentMethod("Card")
+                
                 .timestamp(java.time.LocalDateTime.now())
                 .account(account)
                 .user(testUser)

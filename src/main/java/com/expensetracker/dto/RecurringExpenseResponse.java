@@ -21,8 +21,6 @@ public class RecurringExpenseResponse {
     private BigDecimal amount;
     private String category;
     private String merchant;
-    private String paymentMethod;
-    private String cardName;
     private String notes;
     private RecurrenceFrequency frequency;
     private DayOfWeek dayOfWeek;
@@ -40,8 +38,6 @@ public class RecurringExpenseResponse {
                 .amount(entity.getAmount())
                 .category(entity.getCategory())
                 .merchant(entity.getMerchant())
-                .paymentMethod(entity.getPaymentMethod())
-                .cardName(entity.getCardName())
                 .notes(entity.getNotes())
                 .frequency(entity.getFrequency())
                 .dayOfWeek(entity.getDayOfWeek())

@@ -124,7 +124,7 @@ class ConcurrentBalanceAdjustmentTest {
                             .amount(EXPENSE_AMOUNT)
                             .merchant("Concurrent Merchant " + idx)
                             .category("Other")
-                            .paymentMethod("Card")
+                            
                             .accountId(testAccount.getId())
                             .build();
                     return expenseService.createExpense(req, testUser.getId());
@@ -169,7 +169,7 @@ class ConcurrentBalanceAdjustmentTest {
                     .amount(EXPENSE_AMOUNT)
                     .merchant("Seed Merchant " + i)
                     .category("Other")
-                    .paymentMethod("Card")
+                    
                     .accountId(testAccount.getId())
                     .build();
             created.add(expenseService.createExpense(req, testUser.getId()));
@@ -227,7 +227,7 @@ class ConcurrentBalanceAdjustmentTest {
                     .amount(EXPENSE_AMOUNT)
                     .merchant("Drain " + i)
                     .category("Other")
-                    .paymentMethod("Card")
+                    
                     .accountId(testAccount.getId())
                     .build();
             expenseService.createExpense(req, testUser.getId());
@@ -253,7 +253,7 @@ class ConcurrentBalanceAdjustmentTest {
                             .amount(overspend)
                             .merchant("Overspend " + idx)
                             .category("Other")
-                            .paymentMethod("Card")
+                            
                             .accountId(testAccount.getId())
                             .build();
                     try {

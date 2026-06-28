@@ -146,7 +146,7 @@ class WebhookBudgetsIntegrationTest {
                     .amount(new BigDecimal("300.00"))
                     .category("Groceries")
                     .merchant("Walmart")
-                    .paymentMethod("Card")
+                    
                     .timestamp(LocalDateTime.of(2026, 6, 15, 10, 0))
                     .user(testUser)
                     .build());
@@ -155,7 +155,7 @@ class WebhookBudgetsIntegrationTest {
                     .amount(new BigDecimal("50.00"))
                     .category("Restaurants")
                     .merchant("McDonald's")
-                    .paymentMethod("Card")
+                    
                     .timestamp(LocalDateTime.of(2026, 6, 10, 12, 0))
                     .user(testUser)
                     .build());
@@ -165,7 +165,7 @@ class WebhookBudgetsIntegrationTest {
                     .amount(new BigDecimal("25.00"))
                     .category("Coffee & Cafes")
                     .merchant("Tim Hortons")
-                    .paymentMethod("Card")
+                    
                     .timestamp(LocalDateTime.of(2026, 6, 12, 8, 0))
                     .user(testUser)
                     .build());
@@ -257,7 +257,7 @@ class WebhookBudgetsIntegrationTest {
                     .amount(new BigDecimal("80.00"))
                     .category("Gas & Fuel")
                     .merchant("Shell")
-                    .paymentMethod("Card")
+                    
                     .timestamp(LocalDateTime.of(2026, 6, 5, 14, 0))
                     .user(testUser)
                     .build());
@@ -267,7 +267,7 @@ class WebhookBudgetsIntegrationTest {
                     .amount(new BigDecimal("45.00"))
                     .category("Gas & Fuel")
                     .merchant("Petro-Canada")
-                    .paymentMethod("Card")
+                    
                     .timestamp(LocalDateTime.of(2026, 7, 3, 9, 0))
                     .user(testUser)
                     .build());
@@ -277,7 +277,7 @@ class WebhookBudgetsIntegrationTest {
                     .amount(new BigDecimal("60.00"))
                     .category("Gas & Fuel")
                     .merchant("Esso")
-                    .paymentMethod("Card")
+                    
                     .timestamp(LocalDateTime.of(2026, 5, 20, 16, 0))
                     .user(testUser)
                     .build());
