@@ -1,12 +1,14 @@
 package com.expensetracker.entity;
 
+import com.expensetracker.repository.IncomeRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.transaction.annotation.Transactional;
 
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
-import javax.persistence.metamodel.EntityType;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.metamodel.EntityType;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -18,19 +20,14 @@ import static org.assertj.core.api.Assertions.assertThat;
  * H2 schema (used in test profile) and persists/loads without error.
  */
 @SpringBootTest
+@Transactional
 class IncomeEntityTest {
 
     @PersistenceContext
     private EntityManager em;
 
     @Autowired
-    private IncomeRepositoryStub repo;
-
-    @org.springframework.stereotype.Repository
-    interface IncomeRepositoryStub extends org.springframework.data.repository.Repository<Income, UUID> {
-        Income save(Income income);
-        java.util.Optional<Income> findById(UUID id);
-    }
+    private IncomeRepository repo;
 
     @Test
     void entityIsRegisteredAndPersists() {

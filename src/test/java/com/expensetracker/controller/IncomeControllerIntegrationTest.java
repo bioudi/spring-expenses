@@ -8,7 +8,9 @@ import com.expensetracker.entity.*;
 import com.expensetracker.repository.AccountRepository;
 import com.expensetracker.repository.IncomeRepository;
 import com.expensetracker.repository.UserRepository;
+import com.expensetracker.security.UserPrincipal;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,10 +18,14 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithUserDetails;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.test.context.TestSecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -75,12 +81,29 @@ class IncomeControllerIntegrationTest {
                 .type(AccountType.BASE)
                 .user(testUser)
                 .build());
+
+        // Install a SecurityContext that SecurityUtils.getCurrentUserId() can resolve.
+        // Done here (not via @WithUserDetails) because @WithUserDetails runs in
+        // Spring's beforeTestMethod phase, BEFORE this @BeforeEach — it can't see
+        // a user that doesn't exist yet.
+        UserPrincipal principal = new UserPrincipal(
+                testUser.getId(),
+                testUser.getEmail(),
+                testUser.getPassword(),
+                List.of(new SimpleGrantedAuthority("ROLE_USER")));
+        UsernamePasswordAuthenticationToken auth =
+                new UsernamePasswordAuthenticationToken(principal, "N/A", principal.getAuthorities());
+        TestSecurityContextHolder.setAuthentication(auth);
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
     }
 
     // ─── POST /api/incomes ────────────────────────────────────
 
     @Test
-    @WithUserDetails(value = TEST_EMAIL, userDetailsServiceBeanName = "customUserDetailsService")
     void createIncome_withoutAccount_returnsCreated() throws Exception {
         IncomeRequest request = IncomeRequest.builder()
                 .name("Bi-weekly paycheck")
@@ -104,7 +127,6 @@ class IncomeControllerIntegrationTest {
     }
 
     @Test
-    @WithUserDetails(value = TEST_EMAIL, userDetailsServiceBeanName = "customUserDetailsService")
     void createIncome_withAccount_increasesBalance() throws Exception {
         IncomeRequest request = IncomeRequest.builder()
                 .name("Freelance payment")
@@ -127,7 +149,6 @@ class IncomeControllerIntegrationTest {
     }
 
     @Test
-    @WithUserDetails(value = TEST_EMAIL, userDetailsServiceBeanName = "customUserDetailsService")
     void createIncome_missingName_returnsBadRequest() throws Exception {
         IncomeRequest request = IncomeRequest.builder()
                 .type(IncomeType.CASH)
@@ -142,7 +163,6 @@ class IncomeControllerIntegrationTest {
     }
 
     @Test
-    @WithUserDetails(value = TEST_EMAIL, userDetailsServiceBeanName = "customUserDetailsService")
     void createIncome_invalidAccount_returnsNotFound() throws Exception {
         IncomeRequest request = IncomeRequest.builder()
                 .name("Bad account income")
@@ -161,7 +181,6 @@ class IncomeControllerIntegrationTest {
     // ─── GET /api/incomes ─────────────────────────────────────
 
     @Test
-    @WithUserDetails(value = TEST_EMAIL, userDetailsServiceBeanName = "customUserDetailsService")
     void getIncomes_returnsAllUserIncomes() throws Exception {
         // Create two incomes
         IncomeRequest req1 = IncomeRequest.builder()
@@ -193,7 +212,6 @@ class IncomeControllerIntegrationTest {
     // ─── GET /api/incomes/{id} ────────────────────────────────
 
     @Test
-    @WithUserDetails(value = TEST_EMAIL, userDetailsServiceBeanName = "customUserDetailsService")
     void getIncomeById_returnsIncome() throws Exception {
         IncomeRequest request = IncomeRequest.builder()
                 .name("Specific income")
@@ -218,7 +236,6 @@ class IncomeControllerIntegrationTest {
     }
 
     @Test
-    @WithUserDetails(value = TEST_EMAIL, userDetailsServiceBeanName = "customUserDetailsService")
     void getIncomeById_notFound_returns404() throws Exception {
         mockMvc.perform(get("/api/incomes/{id}", UUID.randomUUID()))
                 .andExpect(status().isNotFound());
@@ -227,7 +244,6 @@ class IncomeControllerIntegrationTest {
     // ─── PUT /api/incomes/{id} ────────────────────────────────
 
     @Test
-    @WithUserDetails(value = TEST_EMAIL, userDetailsServiceBeanName = "customUserDetailsService")
     void updateIncome_updatesFieldsAndAdjustsBalance() throws Exception {
         IncomeRequest createReq = IncomeRequest.builder()
                 .name("Initial income")
@@ -271,7 +287,6 @@ class IncomeControllerIntegrationTest {
     }
 
     @Test
-    @WithUserDetails(value = TEST_EMAIL, userDetailsServiceBeanName = "customUserDetailsService")
     void updateIncome_removeAccountId_reversesOldBalance() throws Exception {
         IncomeRequest createReq = IncomeRequest.builder()
                 .name("With account")
@@ -310,7 +325,6 @@ class IncomeControllerIntegrationTest {
     // ─── DELETE /api/incomes/{id} ─────────────────────────────
 
     @Test
-    @WithUserDetails(value = TEST_EMAIL, userDetailsServiceBeanName = "customUserDetailsService")
     void deleteIncome_reversesBalance() throws Exception {
         IncomeRequest request = IncomeRequest.builder()
                 .name("Delete test")
@@ -340,7 +354,6 @@ class IncomeControllerIntegrationTest {
     }
 
     @Test
-    @WithUserDetails(value = TEST_EMAIL, userDetailsServiceBeanName = "customUserDetailsService")
     void deleteIncome_withoutAccount_noBalanceChange() throws Exception {
         IncomeRequest request = IncomeRequest.builder()
                 .name("No account delete")
