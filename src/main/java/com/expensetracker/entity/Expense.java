@@ -30,13 +30,6 @@ public class Expense {
     @Column(nullable = false)
     private String merchant;
 
-    @Column(name = "payment_method", nullable = false, columnDefinition = "VARCHAR(255) DEFAULT 'Card'")
-    @Builder.Default
-    private String paymentMethod = "Card";
-
-    @Column(name = "card_name")
-    private String cardName;
-
     @Column(nullable = false)
     private LocalDateTime timestamp;
 

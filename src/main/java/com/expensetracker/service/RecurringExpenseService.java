@@ -44,11 +44,6 @@ public class RecurringExpenseService {
     public RecurringExpenseResponse createRecurringExpense(RecurringExpenseRequest request, UUID userId) {
         String category = resolveCategory(request.getCategory(), request.getMerchant(), userId);
 
-        String paymentMethod = request.getPaymentMethod();
-        if (paymentMethod == null || paymentMethod.isBlank()) {
-            paymentMethod = (request.getCardName() != null && !request.getCardName().isBlank()) ? "Card" : "Cash";
-        }
-
         User userRef = entityManager.getReference(User.class, userId);
 
         LocalDate firstOccurrence = computeFirstOccurrence(request);
@@ -57,8 +52,6 @@ public class RecurringExpenseService {
                 .amount(request.getAmount())
                 .category(category)
                 .merchant(request.getMerchant())
-                .paymentMethod(paymentMethod)
-                .cardName(request.getCardName())
                 .notes(request.getNotes())
                 .frequency(request.getFrequency())
                 .dayOfWeek(request.getDayOfWeek())
@@ -105,16 +98,9 @@ public class RecurringExpenseService {
 
         String category = resolveCategory(request.getCategory(), request.getMerchant(), userId);
 
-        String paymentMethod = request.getPaymentMethod();
-        if (paymentMethod == null || paymentMethod.isBlank()) {
-            paymentMethod = (request.getCardName() != null && !request.getCardName().isBlank()) ? "Card" : "Cash";
-        }
-
         recurring.setAmount(request.getAmount());
         recurring.setCategory(category);
         recurring.setMerchant(request.getMerchant());
-        recurring.setPaymentMethod(paymentMethod);
-        recurring.setCardName(request.getCardName());
         recurring.setNotes(request.getNotes());
         recurring.setFrequency(request.getFrequency());
         recurring.setDayOfWeek(request.getDayOfWeek());
@@ -168,8 +154,6 @@ public class RecurringExpenseService {
                 .amount(expense.getAmount())
                 .merchant(expense.getMerchant())
                 .category(expense.getCategory())
-                .paymentMethod(expense.getPaymentMethod())
-                .cardName(expense.getCardName())
                 .notes(expense.getNotes())
                 .frequency(recurrenceFields.getFrequency())
                 .dayOfWeek(recurrenceFields.getDayOfWeek())
@@ -223,8 +207,6 @@ public class RecurringExpenseService {
                 .amount(template.getAmount())
                 .category(template.getCategory())
                 .merchant(template.getMerchant())
-                .paymentMethod(template.getPaymentMethod())
-                .cardName(template.getCardName())
                 .notes(template.getNotes())
                 .timestamp(template.getNextOccurrence().atStartOfDay())
                 .recurringExpenseId(template.getId())

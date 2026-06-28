@@ -144,7 +144,7 @@ class WebhookDashboardIntegrationTest {
                     .amount(new BigDecimal("100.00"))
                     .category("Groceries")
                     .merchant("Walmart")
-                    .paymentMethod("Card")
+                    
                     .timestamp(LocalDateTime.of(2026, 6, 1, 10, 0))
                     .user(testUser)
                     .build());
@@ -153,7 +153,7 @@ class WebhookDashboardIntegrationTest {
                     .amount(new BigDecimal("50.00"))
                     .category("Groceries")
                     .merchant("Costco")
-                    .paymentMethod("Card")
+                    
                     .timestamp(LocalDateTime.of(2026, 6, 5, 14, 0))
                     .user(testUser)
                     .build());
@@ -162,7 +162,7 @@ class WebhookDashboardIntegrationTest {
                     .amount(new BigDecimal("30.00"))
                     .category("Restaurants")
                     .merchant("McDonald's")
-                    .paymentMethod("Card")
+                    
                     .timestamp(LocalDateTime.of(2026, 6, 10, 12, 0))
                     .user(testUser)
                     .build());
@@ -171,7 +171,7 @@ class WebhookDashboardIntegrationTest {
                     .amount(new BigDecimal("15.00"))
                     .category("Restaurants")
                     .merchant("Tim Hortons")
-                    .paymentMethod("Card")
+                    
                     .timestamp(LocalDateTime.of(2026, 6, 15, 8, 0))
                     .user(testUser)
                     .build());
@@ -180,7 +180,7 @@ class WebhookDashboardIntegrationTest {
                     .amount(new BigDecimal("75.00"))
                     .category("Gas & Fuel")
                     .merchant("Shell")
-                    .paymentMethod("Card")
+                    
                     .timestamp(LocalDateTime.of(2026, 6, 20, 9, 0))
                     .user(testUser)
                     .build());
@@ -327,7 +327,7 @@ class WebhookDashboardIntegrationTest {
                         .amount(BigDecimal.valueOf(i * 10))
                         .category("Groceries")
                         .merchant("Merchant" + i)
-                        .paymentMethod("Card")
+                        
                         .timestamp(LocalDateTime.of(2026, 6, i, 12, 0))
                         .user(testUser)
                         .build());
@@ -347,7 +347,7 @@ class WebhookDashboardIntegrationTest {
                     .amount(new BigDecimal("25.00"))
                     .category("Groceries")
                     .merchant("Walmart")
-                    .paymentMethod("Card")
+                    
                     .timestamp(LocalDateTime.of(2026, 6, 1, 10, 0))
                     .user(testUser)
                     .build());
@@ -356,7 +356,7 @@ class WebhookDashboardIntegrationTest {
                     .amount(new BigDecimal("35.00"))
                     .category("Groceries")
                     .merchant("Walmart")
-                    .paymentMethod("Card")
+                    
                     .timestamp(LocalDateTime.of(2026, 6, 5, 14, 0))
                     .user(testUser)
                     .build());
@@ -388,7 +388,7 @@ class WebhookDashboardIntegrationTest {
                     .amount(new BigDecimal("100.00"))
                     .category("Groceries")
                     .merchant("Walmart")
-                    .paymentMethod("Card")
+                    
                     .timestamp(LocalDateTime.of(2026, 6, 15, 10, 0))
                     .user(testUser)
                     .build());
@@ -397,7 +397,7 @@ class WebhookDashboardIntegrationTest {
                     .amount(new BigDecimal("200.00"))
                     .category("Restaurants")
                     .merchant("Olive Garden")
-                    .paymentMethod("Card")
+                    
                     .timestamp(LocalDateTime.of(2026, 7, 3, 19, 0))
                     .user(testUser)
                     .build());
@@ -406,7 +406,7 @@ class WebhookDashboardIntegrationTest {
                     .amount(new BigDecimal("50.00"))
                     .category("Groceries")
                     .merchant("Metro")
-                    .paymentMethod("Card")
+                    
                     .timestamp(LocalDateTime.of(2026, 5, 20, 16, 0))
                     .user(testUser)
                     .build());
@@ -482,7 +482,7 @@ class WebhookDashboardIntegrationTest {
                     .amount(new BigDecimal("999.99"))
                     .category("Electronics")
                     .merchant("Best Buy")
-                    .paymentMethod("Card")
+                    
                     .timestamp(LocalDateTime.of(2026, 6, 1, 10, 0))
                     .user(otherUser)
                     .build());

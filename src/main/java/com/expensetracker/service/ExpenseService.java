@@ -63,18 +63,6 @@ public class ExpenseService {
             notes = request.getName();
         }
 
-        // Use "card" field if "cardName" is empty
-        String cardName = request.getCardName();
-        if ((cardName == null || cardName.isBlank()) && request.getCard() != null) {
-            cardName = request.getCard();
-        }
-
-        // Determine payment method: default to "Card" if cardName is present, otherwise use provided or default
-        String paymentMethod = request.getPaymentMethod();
-        if (paymentMethod == null || paymentMethod.isBlank()) {
-            paymentMethod = (cardName != null && !cardName.isBlank()) ? "Card" : "Cash";
-        }
-
         User userRef = entityManager.getReference(User.class, userId);
 
         // Fetch account if accountId provided (for both reference and balance deduction)
@@ -92,8 +80,6 @@ public class ExpenseService {
                 .amount(request.getAmount())
                 .category(category)
                 .merchant(request.getMerchant())
-                .paymentMethod(paymentMethod)
-                .cardName(cardName)
                 .timestamp(resolveTimestampForCreate(request))
                 .notes(notes)
                 .account(account)
@@ -381,16 +367,6 @@ public class ExpenseService {
         if (request.getMerchant() != null) {
             expense.setMerchant(request.getMerchant());
         }
-
-        if (request.getPaymentMethod() != null && !request.getPaymentMethod().isBlank()) {
-            expense.setPaymentMethod(request.getPaymentMethod());
-        }
-
-        String cardName = request.getCardName();
-        if ((cardName == null || cardName.isBlank()) && request.getCard() != null) {
-            cardName = request.getCard();
-        }
-        expense.setCardName(cardName);
 
         LocalDateTime resolvedTimestamp = resolveTimestampForUpdate(request);
         if (resolvedTimestamp != null) {
