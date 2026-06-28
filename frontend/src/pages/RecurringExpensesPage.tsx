@@ -11,11 +11,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel } from '@/components/ui/alert-dialog'
 import { api } from '@/lib/api'
 import { formatMoney, formatDate, formatRecurrence } from '@/lib/formatters'
-import { CATEGORY_COLORS, CATEGORY_GROUPS, PAYMENT_METHODS } from '@/lib/categories'
+import { CATEGORY_COLORS, CATEGORY_GROUPS } from '@/lib/categories'
 import { useI18n } from '@/i18n'
 import { toast } from 'sonner'
 import { toISODate } from '@/lib/formatters'
-import type { RecurringExpenseResponse, RecurringExpenseRequest, RecurrenceFrequency, DayOfWeek } from '@/types'
+import type { RecurringExpenseResponse, RecurringExpenseRequest, RecurrenceFrequency, DayOfWeek, AccountResponse } from '@/types'
 
 export default function RecurringExpensesPage() {
   const { t, tc, language } = useI18n()
@@ -28,8 +28,8 @@ export default function RecurringExpensesPage() {
   const [amount, setAmount] = useState('')
   const [merchant, setMerchant] = useState('')
   const [category, setCategory] = useState('')
-  const [paymentMethod, setPaymentMethod] = useState('Card')
-  const [cardName, setCardName] = useState('')
+  const [accountId, setAccountId] = useState('')
+  const [accounts, setAccounts] = useState<AccountResponse[]>([])
   const [notes, setNotes] = useState('')
   const [frequency, setFrequency] = useState<RecurrenceFrequency>('MONTHLY')
   const [dayOfWeek, setDayOfWeek] = useState<DayOfWeek | ''>('')
@@ -54,7 +54,10 @@ export default function RecurringExpensesPage() {
     { value: 'SUNDAY', label: t('frequency.days.SUNDAY') },
   ]
 
-  useEffect(() => { loadItems() }, [])
+  useEffect(() => {
+    loadItems()
+    api.getAccounts().then(setAccounts).catch(() => {})
+  }, [])
 
   async function loadItems() {
     setLoading(true)
@@ -68,8 +71,7 @@ export default function RecurringExpensesPage() {
     setAmount('')
     setMerchant('')
     setCategory('')
-    setPaymentMethod('Card')
-    setCardName('')
+    setAccountId('')
     setNotes('')
     setFrequency('MONTHLY')
     setDayOfWeek('')
@@ -84,8 +86,7 @@ export default function RecurringExpensesPage() {
     setAmount(String(item.amount))
     setMerchant(item.merchant)
     setCategory(item.category)
-    setPaymentMethod(item.paymentMethod || 'Card')
-    setCardName(item.cardName || '')
+    setAccountId(item.accountId || '')
     setNotes(item.notes || '')
     setFrequency(item.frequency)
     setDayOfWeek(item.dayOfWeek || '')
@@ -102,14 +103,13 @@ export default function RecurringExpensesPage() {
       amount: parseFloat(amount),
       merchant,
       category: category || undefined,
-      paymentMethod,
-      cardName: (paymentMethod === 'Card' || paymentMethod === 'Debit') ? cardName : null,
       notes: notes || null,
       frequency,
       dayOfWeek: (frequency === 'WEEKLY' || frequency === 'BI_WEEKLY') && dayOfWeek ? dayOfWeek as DayOfWeek : null,
       dayOfMonth: frequency === 'MONTHLY' && dayOfMonth ? parseInt(dayOfMonth) : null,
       startDate,
       endDate: endDate || null,
+      accountId: accountId || null,
     }
 
     try {
@@ -149,7 +149,6 @@ export default function RecurringExpensesPage() {
     }
   }
 
-  const showCardName = paymentMethod === 'Card' || paymentMethod === 'Debit'
   const showDayOfWeek = frequency === 'WEEKLY' || frequency === 'BI_WEEKLY'
   const showDayOfMonth = frequency === 'MONTHLY'
 
@@ -311,25 +310,18 @@ export default function RecurringExpensesPage() {
                 ))}
               </select>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>{t('recurring.paymentMethod')}</Label>
-                <select
-                  value={paymentMethod}
-                  onChange={(e) => setPaymentMethod(e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                >
-                  {PAYMENT_METHODS.map((m) => (
-                    <option key={m} value={m}>{t(`payment.${m}`)}</option>
-                  ))}
-                </select>
-              </div>
-              {showCardName && (
-                <div className="space-y-2">
-                  <Label>{t('recurring.cardName')}</Label>
-                  <Input value={cardName} onChange={(e) => setCardName(e.target.value)} placeholder={t('recurring.placeholderCard')} />
-                </div>
-              )}
+            <div className="space-y-2">
+              <Label>{t('recurring.account')}</Label>
+              <select
+                value={accountId}
+                onChange={(e) => setAccountId(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                <option value="">— {t('recurring.noAccount')} —</option>
+                {accounts.map((a) => (
+                  <option key={a.id} value={a.id}>{a.name} ({t(`accountTypes.${a.type}`)})</option>
+                ))}
+              </select>
             </div>
 
             {/* Recurrence fields */}
