@@ -58,6 +58,9 @@ class WebhookBudgetsIntegrationTest {
     @Autowired
     private ExpenseRepository expenseRepository;
 
+    @Autowired
+    private com.expensetracker.repository.AccountRepository accountRepository;
+
     // Suppress side-effect runners that aren't needed for tests
     @MockBean
     private DataMigrationRunner dataMigrationRunner;
@@ -70,10 +73,18 @@ class WebhookBudgetsIntegrationTest {
     @BeforeEach
     void setUp() {
         // Delete in FK order: dependents first, then users.
-        // (Old order did userRepository.deleteAll() first, which violates FK
-        // whenever a previous run left budgets/expenses behind.)
-        budgetRepository.deleteAll();
+        // Accounts were added after the original budget test was written — without
+        // an accountRepository.deleteAll() here, accounts left over by sibling
+        // tests (ExpenseControllerIntegrationTest, AccountControllerIntegrationTest,
+        // WebhookControllerExpenseCreateTest, …) cascade-fail this setUp() with
+        // a FK violation the moment userRepository.deleteAll() tries to remove
+        // their owning user.
+        //
+        // Order matters: expenses FK → accounts FK → users. Expenses must come
+        // off before accounts, and accounts before users.
         expenseRepository.deleteAll();
+        accountRepository.deleteAll();
+        budgetRepository.deleteAll();
         userRepository.deleteAll();
 
         testUser = userRepository.save(User.builder()
