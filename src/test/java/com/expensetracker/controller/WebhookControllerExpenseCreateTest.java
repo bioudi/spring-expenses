@@ -358,5 +358,43 @@ class WebhookControllerExpenseCreateTest {
                             .content(body))
                     .andExpect(status().isBadRequest());
         }
+
+        @Test
+        @DisplayName("Returns 400 with clear message when account_id is empty string")
+        void emptyStringAccountId_returns400() throws Exception {
+            // Bug: empty string used to be silently coerced to null (HTTP 201, unlinked expense).
+            // Fix: strict UUID deserializer rejects empty / blank strings with HTTP 400.
+            String body = "{\"amount\":10,\"merchant\":\"X\",\"category\":\"Other\",\"accountId\":\"\"}";
+
+            mockMvc.perform(post("/api/webhook/expense")
+                            .header(API_KEY_HEADER, VALID_API_KEY)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(body))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error").value("Invalid accountId format"))
+                    .andExpect(jsonPath("$.message", containsString("not a valid UUID")));
+
+            // No expense should have been persisted (regression guard for the
+            // original bug, which silently created unlinked expenses).
+            assertThat(expenseRepository.findAllByUserIdOrderByTimestampDesc(testUser.getId()))
+                    .isEmpty();
+
+            // Balance untouched.
+            Account untouched = accountRepository.findById(testAccount.getId()).orElseThrow();
+            assertThat(untouched.getBalance()).isEqualByComparingTo(new BigDecimal("500.00"));
+        }
+
+        @Test
+        @DisplayName("Returns 400 when account_id is whitespace-only")
+        void whitespaceAccountId_returns400() throws Exception {
+            String body = "{\"amount\":10,\"merchant\":\"X\",\"category\":\"Other\",\"accountId\":\"   \"}";
+
+            mockMvc.perform(post("/api/webhook/expense")
+                            .header(API_KEY_HEADER, VALID_API_KEY)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(body))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error").value("Invalid accountId format"));
+        }
     }
 }
