@@ -241,10 +241,10 @@ public class GlobalExceptionHandler {
         // message than the generic "Malformed JSON".
         Throwable cause = ex.getCause();
 
-        // Unknown property (ExpenseRequest carries
-        // @JsonIgnoreProperties(ignoreUnknown = false), so any unrecognised
-        // key in the request body lands here). Surface the offending field
-        // name so the caller knows
+        // Unknown property (ExpenseRequest's @JsonAnySetter raises
+        // IllegalArgumentException("Unknown field: ..."), so any
+        // unrecognised key in the request body lands here). Surface the
+        // offending field name so the caller knows
         // which one to drop instead of seeing a generic "Malformed JSON".
         if (cause instanceof UnrecognizedPropertyException upe) {
             String fieldName = upe.getPropertyName();
@@ -262,6 +262,28 @@ public class GlobalExceptionHandler {
                     .path(request.getRequestURI())
                     .build();
             return ResponseEntity.badRequest().body(response);
+        }
+
+        // @JsonAnySetter on ExpenseRequest throws IllegalArgumentException
+        // for unknown fields. Walk the cause chain to find it.
+        Throwable rootCause = cause;
+        while (rootCause != null) {
+            if (rootCause instanceof IllegalArgumentException iae
+                    && iae.getMessage() != null
+                    && iae.getMessage().startsWith("Unknown field:")) {
+                String fieldName = iae.getMessage().replace("Unknown field: ", "");
+                log.debug("Rejecting request to {} — unknown field '{}' (via @JsonAnySetter)",
+                        request.getRequestURI(), fieldName);
+                ErrorResponse response = ErrorResponse.builder()
+                        .timestamp(LocalDateTime.now())
+                        .status(HttpStatus.BAD_REQUEST.value())
+                        .error("Unknown field '" + fieldName + "'")
+                        .message("Field '" + fieldName + "' is not recognized")
+                        .path(request.getRequestURI())
+                        .build();
+                return ResponseEntity.badRequest().body(response);
+            }
+            rootCause = rootCause.getCause();
         }
 
         if (cause instanceof InvalidFormatException ife && ife.getTargetType() != null) {
