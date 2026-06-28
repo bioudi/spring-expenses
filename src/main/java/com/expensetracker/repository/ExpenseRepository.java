@@ -40,4 +40,12 @@ public interface ExpenseRepository extends JpaRepository<Expense, UUID> {
     );
 
     Optional<Expense> findByIdAndUserId(UUID id, UUID userId);
+
+    /**
+     * Counts the expenses that still reference the given account id. Used by
+     * {@code AccountService.deleteAccount} to reject deletion when expenses
+     * are still linked, surfacing a clear 400 instead of a raw
+     * foreign-key-violation 500.
+     */
+    long countByAccountId(UUID accountId);
 }
