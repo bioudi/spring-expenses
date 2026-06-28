@@ -28,8 +28,6 @@ public class ExpenseRequest {
 
     private String merchant;
 
-    private String card;
-
     private String name;
 
     /**
