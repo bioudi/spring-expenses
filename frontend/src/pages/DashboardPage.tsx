@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
+import { useLocation } from 'react-router-dom'
 import { Doughnut, Bar } from 'react-chartjs-2'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card'
@@ -61,6 +62,7 @@ function resolveThemeColors() {
 export default function DashboardPage() {
   const { theme } = useTheme()
   const { t, tc, language } = useI18n()
+  const location = useLocation()
   const [dashboard, setDashboard] = useState<DashboardResponse | null>(null)
   const [period, setPeriod] = useState<Period>('month')
   const [refDate, setRefDate] = useState(new Date())
@@ -88,11 +90,11 @@ export default function DashboardPage() {
     api.getDashboard(toISODate(refDate))
       .then(setDashboard)
       .finally(() => setLoading(false))
-  }, [refDate])
+  }, [refDate, location.key])
 
   useEffect(() => {
     api.getBudgets(toISODate(refDate)).then(setBudgets).catch(() => {})
-  }, [refDate])
+  }, [refDate, location.key])
 
   const data: PeriodSummary | null = dashboard ? dashboard[period] : null
 
