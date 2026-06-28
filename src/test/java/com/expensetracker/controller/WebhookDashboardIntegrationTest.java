@@ -430,7 +430,7 @@ class WebhookDashboardIntegrationTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.transactionCount").value(expectedCount))
                     .andExpect(jsonPath("$.totalSpent").value(closeTo(expectedTotal, 0.01)))
-                    .andExpect(jsonPath("$.categoryBreakdown.\"" + expectedCategory + "\".total")
+                    .andExpect(jsonPath("$.categoryBreakdown['" + expectedCategory + "'].total")
                             .value(closeTo(expectedCategoryTotal, 0.01)));
         }
 

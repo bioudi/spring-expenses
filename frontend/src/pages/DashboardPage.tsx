@@ -187,7 +187,7 @@ export default function DashboardPage() {
         <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">{t('dashboard.loadingDashboard')}</div>
       ) : !data ? (
         <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">{t('common.noData')}</div>
-      ) : (
+      ) : dashboard && data ? (
         <>
           {/* Net Worth & Account Balances row */}
           <div className="grid grid-cols-1 gap-4 px-4 lg:px-6 sm:grid-cols-2">
@@ -530,7 +530,7 @@ export default function DashboardPage() {
             </div>
           )}
         </>
-      )}
+      ) : null}
     </div>
   )
 }
