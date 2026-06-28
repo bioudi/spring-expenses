@@ -6,6 +6,8 @@ import com.expensetracker.dto.TransferResponse.AccountSnapshot;
 import com.expensetracker.entity.Account;
 import com.expensetracker.exception.AccountNotFoundException;
 import com.expensetracker.repository.AccountRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -42,6 +44,9 @@ public class TransferService {
 
     private final AccountRepository accountRepository;
     private final AccountService accountService;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     /**
      * Moves {@code request.amount} from one of the caller's accounts to
@@ -87,30 +92,32 @@ public class TransferService {
         // sources reject insufficient funds (InsufficientFundsException → 422),
         // CREDIT sources never throw on the source side. We discard the
         // returned balances and re-read below so the snapshot reflects the
-        // authoritative post-update value (in case Hibernate's first-level
-        // cache returned a stale value).
+        // authoritative post-update value.
         accountService.adjustBalance(fromId, amount.negate());
         accountService.adjustBalance(toId, amount);
 
-        // Re-read for the snapshot. Inside the same transaction the entities
-        // are already managed, but the snapshot should be independent of the
-        // entity reference held above.
-        Account fromAfter = accountRepository.findById(fromId).orElseThrow();
-        Account toAfter = accountRepository.findById(toId).orElseThrow();
+        // Force the persistence context to reload these two entities from
+        // the database. Without this, Hibernate's first-level cache would
+        // return the pre-update Account instances that were loaded at the
+        // top of this method — and the snapshot would show stale balances
+        // even though the database was updated correctly. {@code refresh()}
+        // issues a SELECT and overwrites the cached entity in place.
+        entityManager.refresh(from);
+        entityManager.refresh(to);
 
         return TransferResponse.builder()
                 .transferId(UUID.randomUUID()) // No transfer row is persisted; this is a request-correlation id
                 .fromAccount(AccountSnapshot.builder()
-                        .id(fromAfter.getId())
-                        .name(fromAfter.getName())
-                        .type(fromAfter.getType())
-                        .balance(fromAfter.getBalance())
+                        .id(from.getId())
+                        .name(from.getName())
+                        .type(from.getType())
+                        .balance(from.getBalance())
                         .build())
                 .toAccount(AccountSnapshot.builder()
-                        .id(toAfter.getId())
-                        .name(toAfter.getName())
-                        .type(toAfter.getType())
-                        .balance(toAfter.getBalance())
+                        .id(to.getId())
+                        .name(to.getName())
+                        .type(to.getType())
+                        .balance(to.getBalance())
                         .build())
                 .amount(amount)
                 .description(request.getDescription())
