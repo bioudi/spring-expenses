@@ -286,7 +286,7 @@ class RecurringExpenseControllerIntegrationTest {
         return RecurringExpenseRequest.builder()
                 .amount(new BigDecimal("15.99"))
                 .merchant("Netflix")
-                .category("Entertainment")
+                .category("Streaming")
                 .frequency(RecurrenceFrequency.MONTHLY)
                 .dayOfMonth(15)
                 // Start in the past so the template is well-defined but no
