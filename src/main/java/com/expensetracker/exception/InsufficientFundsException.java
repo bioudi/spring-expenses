@@ -3,9 +3,11 @@ package com.expensetracker.exception;
 import java.math.BigDecimal;
 
 /**
- * Thrown when an expense (or other operation) would drive a real-money
- * account's balance below zero. CREDIT accounts are debt-tracking and are
- * allowed to go more negative, so this is never thrown for them.
+ * Thrown when a balance mutation would drive a non-CREDIT account's balance
+ * below zero. The atomic {@code adjustBalance} path uses the database's
+ * {@code WHERE balance &gt;= :amount} predicate to detect this race-free.
+ *
+ * <p>Translated to HTTP 422 by {@code GlobalExceptionHandler}.
  */
 public class InsufficientFundsException extends RuntimeException {
 
