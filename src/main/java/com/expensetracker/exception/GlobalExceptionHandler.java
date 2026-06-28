@@ -2,6 +2,7 @@ package com.expensetracker.exception;
 
 import com.expensetracker.dto.ErrorResponse;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
+import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -239,6 +240,29 @@ public class GlobalExceptionHandler {
         // (e.g. account type "Savings" instead of "SAVINGS"), surface a clearer
         // message than the generic "Malformed JSON".
         Throwable cause = ex.getCause();
+
+        // Unknown property (Spring Boot's default ObjectMapper has
+        // FAIL_ON_UNKNOWN_PROPERTIES=true, so an unknown key in a request body
+        // lands here). Surface the offending field name so the caller knows
+        // which one to drop instead of seeing a generic "Malformed JSON".
+        if (cause instanceof UnrecognizedPropertyException upe) {
+            String fieldName = upe.getPropertyName();
+            List<String> knownFields = upe.getKnownPropertyIds().stream()
+                    .map(Object::toString)
+                    .sorted()
+                    .collect(Collectors.toList());
+            log.debug("Rejecting request to {} — unknown field '{}'", request.getRequestURI(), fieldName);
+            ErrorResponse response = ErrorResponse.builder()
+                    .timestamp(LocalDateTime.now())
+                    .status(HttpStatus.BAD_REQUEST.value())
+                    .error("Unknown field '" + fieldName + "'")
+                    .message("Field '" + fieldName + "' is not recognized. Allowed fields: "
+                            + String.join(", ", knownFields))
+                    .path(request.getRequestURI())
+                    .build();
+            return ResponseEntity.badRequest().body(response);
+        }
+
         if (cause instanceof InvalidFormatException ife && ife.getTargetType() != null) {
             String fieldName = ife.getPath().isEmpty() ? "value" :
                     ife.getPath().get(ife.getPath().size() - 1).getFieldName();

@@ -414,8 +414,7 @@ class WebhookControllerExpenseCreateTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(body))
                     .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.error").value("Field 'card' is not allowed"))
-                    .andExpect(jsonPath("$.message", containsString("card")));
+                    .andExpect(jsonPath("$.error", containsString("card")));
 
             // No expense should have been persisted
             assertThat(expenseRepository.findAllByUserIdOrderByTimestampDesc(testUser.getId()))
@@ -427,7 +426,9 @@ class WebhookControllerExpenseCreateTest {
         void cardFieldPresentAsNull_returns400() throws Exception {
             // Key presence (not value) is what we reject, so `{"card": null}` must
             // also be 400 — otherwise a stale client could trip past the guard
-            // by switching the value to null.
+            // by switching the value to null. Spring Boot's default ObjectMapper
+            // has FAIL_ON_UNKNOWN_PROPERTIES=true, which surfaces any unknown key
+            // (including a null-valued one) as an UnrecognizedPropertyException.
             String body = "{\"amount\":10,\"merchant\":\"X\",\"category\":\"Other\",\"card\":null}";
 
             mockMvc.perform(post("/api/webhook/expense")
@@ -435,7 +436,7 @@ class WebhookControllerExpenseCreateTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(body))
                     .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.error").value("Field 'card' is not allowed"));
+                    .andExpect(jsonPath("$.error", containsString("card")));
 
             assertThat(expenseRepository.findAllByUserIdOrderByTimestampDesc(testUser.getId()))
                     .isEmpty();
@@ -444,9 +445,9 @@ class WebhookControllerExpenseCreateTest {
         @Test
         @DisplayName("Returns 400 even when 'card' is the only field set alongside amount")
         void cardFieldAlongsideAccountId_returns400() throws Exception {
-            // Belt-and-braces: the card check must run before any other validation
-            // so a stale client sending card+accountId never reaches the account
-            // lookup or persists anything.
+            // Belt-and-braces: Jackson rejects unknown fields before any other
+            // validation runs, so a stale client sending card+accountId never
+            // reaches the account lookup or persists anything.
             String body = String.format(
                     "{\"amount\":10,\"merchant\":\"X\",\"category\":\"Other\",\"card\":\"x\",\"accountId\":\"%s\"}",
                     testAccount.getId());
@@ -456,9 +457,10 @@ class WebhookControllerExpenseCreateTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(body))
                     .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.error").value("Field 'card' is not allowed"));
+                    .andExpect(jsonPath("$.error", containsString("card")));
 
-            // Balance untouched — the card check should short-circuit.
+            // Balance untouched — Jackson's unknown-field rejection short-circuits
+            // before the controller body runs.
             Account untouched = accountRepository.findById(testAccount.getId()).orElseThrow();
             assertThat(untouched.getBalance()).isEqualByComparingTo(new BigDecimal("500.00"));
         }

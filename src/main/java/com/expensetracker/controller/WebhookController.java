@@ -13,9 +13,7 @@ import com.expensetracker.service.BudgetService;
 import com.expensetracker.service.ExpenseService;
 import com.expensetracker.repository.AccountRepository;
 import com.expensetracker.util.SecurityUtils;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.validation.Validator;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -40,55 +38,11 @@ public class WebhookController {
     private final ExpenseService expenseService;
     private final BudgetService budgetService;
     private final AccountRepository accountRepository;
-    private final ObjectMapper objectMapper;
-    private final Validator validator;
 
     @PostMapping("/expense")
     public ResponseEntity<?> createExpense(
-            @RequestBody JsonNode requestBody
+            @Valid @RequestBody ExpenseRequest request
     ) {
-        // Reject any payload that still includes the deprecated `card` field.
-        // The card/payment-method concept was removed from the platform, so
-        // clients that still send it are stale — surface a clear 400 instead
-        // of silently dropping the field. Detect key presence (not value) so
-        // `{"card": null}` is also rejected.
-        if (requestBody != null && requestBody.isObject() && requestBody.has("card")) {
-            log.warn("Webhook /expense rejected: payload contains deprecated 'card' field");
-            return ResponseEntity.badRequest().body(Map.of(
-                    "error", "Field 'card' is not allowed",
-                    "message", "The 'card' field is no longer accepted. Send only the supported fields (amount, merchant, category, name, date, timestamp, notes, accountId)."
-            ));
-        }
-
-        // The body is accepted as a raw JsonNode so we can inspect it for the
-        // `card` key above before the DTO is bound. After the inspection we
-        // deserialize manually. Any JsonProcessingException (e.g. invalid
-        // UUID format raised by StrictUuidDeserializer) is rethrown as
-        // HttpMessageNotReadableException so GlobalExceptionHandler renders
-        // a 400 with the same error shape the original @Valid path produced.
-        ExpenseRequest request;
-        try {
-            request = objectMapper.treeToValue(requestBody, ExpenseRequest.class);
-        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
-            throw new org.springframework.http.converter.HttpMessageNotReadableException(
-                    "Request body is not valid JSON", e);
-        }
-
-        // Re-run @Valid manually now that we've deserialized by hand. The
-        // presence of @Valid in the original method signature only fires
-        // during Spring's body-binding step, which we bypassed by accepting
-        // JsonNode.
-        var violations = validator.validate(request);
-        if (!violations.isEmpty()) {
-            String message = violations.stream()
-                    .map(v -> v.getPropertyPath() + " " + v.getMessage())
-                    .sorted()
-                    .collect(Collectors.joining("; "));
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Invalid request data: " + message);
-        }
-
         log.info("Received webhook request: amount={}, merchant={}, name={}, category={}, notes={}, timestamp={}, accountId={}",
                 request.getAmount(),
                 request.getMerchant(),
