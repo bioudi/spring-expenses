@@ -11,6 +11,7 @@ concurrency:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    environment: Build
 
     steps:
       - uses: actions/checkout@v4
