@@ -241,10 +241,10 @@ public class GlobalExceptionHandler {
         // message than the generic "Malformed JSON".
         Throwable cause = ex.getCause();
 
-        // Unknown property (application.properties enables
-        // spring.jackson.deserialization.fail-on-unknown-properties=true, so
-        // any unrecognised key in a request body lands here). Surface the
-        // offending field name so the caller knows
+        // Unknown property (ExpenseRequest carries
+        // @JsonIgnoreProperties(ignoreUnknown = false), so any unrecognised
+        // key in the request body lands here). Surface the offending field
+        // name so the caller knows
         // which one to drop instead of seeing a generic "Malformed JSON".
         if (cause instanceof UnrecognizedPropertyException upe) {
             String fieldName = upe.getPropertyName();

@@ -2,6 +2,7 @@ package com.expensetracker.dto;
 
 import com.expensetracker.config.FlexibleBigDecimalDeserializer;
 import com.expensetracker.config.StrictUuidDeserializer;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import jakarta.validation.constraints.*;
@@ -17,6 +18,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@JsonIgnoreProperties(ignoreUnknown = false)
 public class ExpenseRequest {
 
     @NotNull(message = "Amount is required")
