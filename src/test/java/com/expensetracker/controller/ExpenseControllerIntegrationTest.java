@@ -176,6 +176,77 @@ class ExpenseControllerIntegrationTest {
     }
 
     @Test
+    void createExpense_amountExceedsBalance_returnsUnprocessableEntity() throws Exception {
+        // testAccount starts at 1000.00 (see setUp)
+        ExpenseRequest request = ExpenseRequest.builder()
+                .amount(new BigDecimal("999999.00"))
+                .merchant("QA Test")
+                .category("Other")
+                .paymentMethod("Card")
+                .accountId(testAccount.getId())
+                .build();
+
+        mockMvc.perform(post("/api/expenses")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error").value("Insufficient Funds"))
+                .andExpect(jsonPath("$.message")
+                        .value(org.hamcrest.Matchers.containsString("Insufficient funds")));
+
+        // Balance must NOT have been mutated
+        Account unchanged = accountRepository.findById(testAccount.getId()).orElseThrow();
+        assertThat(unchanged.getBalance()).isEqualByComparingTo(new BigDecimal("1000.00"));
+    }
+
+    @Test
+    void createExpense_amountExactlyBalance_succeeds() throws Exception {
+        // Boundary: amount == balance must succeed (zero balance is allowed).
+        ExpenseRequest request = ExpenseRequest.builder()
+                .amount(new BigDecimal("1000.00"))
+                .merchant("Edge Case")
+                .category("Other")
+                .paymentMethod("Card")
+                .accountId(testAccount.getId())
+                .build();
+
+        mockMvc.perform(post("/api/expenses")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated());
+
+        Account updated = accountRepository.findById(testAccount.getId()).orElseThrow();
+        assertThat(updated.getBalance()).isEqualByComparingTo(BigDecimal.ZERO);
+    }
+
+    @Test
+    void createExpense_amountExceedsBalanceOnCreditAccount_succeeds() throws Exception {
+        // CREDIT accounts track outstanding debt — must be allowed to go more negative.
+        Account creditAccount = accountRepository.save(Account.builder()
+                .name("Test Credit")
+                .balance(new BigDecimal("0.00"))
+                .type(AccountType.CREDIT)
+                .user(testUser)
+                .build());
+
+        ExpenseRequest request = ExpenseRequest.builder()
+                .amount(new BigDecimal("5000.00"))
+                .merchant("Big Spender")
+                .category("Other")
+                .paymentMethod("Card")
+                .accountId(creditAccount.getId())
+                .build();
+
+        mockMvc.perform(post("/api/expenses")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated());
+
+        Account updated = accountRepository.findById(creditAccount.getId()).orElseThrow();
+        assertThat(updated.getBalance()).isEqualByComparingTo(new BigDecimal("-5000.00"));
+    }
+
+    @Test
     void createExpense_invalidAccount_returnsNotFound() throws Exception {
         ExpenseRequest request = ExpenseRequest.builder()
                 .amount(new BigDecimal("50.00"))
@@ -320,6 +391,59 @@ class ExpenseControllerIntegrationTest {
         // Balance should be restored: 1000 - 75 + 75 = 1000
         assertThat(accountRepository.findById(testAccount.getId()).orElseThrow().getBalance())
                 .isEqualByComparingTo(new BigDecimal("1000.00"));
+    }
+
+    @Test
+    void updateExpense_switchToAccountWithInsufficientFunds_returnsUnprocessableEntity() throws Exception {
+        // Pre-create an expense on testAccount (1000.00 balance)
+        ExpenseRequest createReq = ExpenseRequest.builder()
+                .amount(new BigDecimal("100.00"))
+                .merchant("Lunch")
+                .category("Restaurants")
+                .paymentMethod("Card")
+                .accountId(testAccount.getId())
+                .build();
+
+        String createBody = mockMvc.perform(post("/api/expenses")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createReq)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        ExpenseResponse created = objectMapper.readValue(createBody, ExpenseResponse.class);
+        // testAccount balance is now 1000 - 100 = 900
+        assertThat(accountRepository.findById(testAccount.getId()).orElseThrow().getBalance())
+                .isEqualByComparingTo(new BigDecimal("900.00"));
+
+        // Low-balance savings account
+        Account savings = accountRepository.save(Account.builder()
+                .name("Piggy Bank")
+                .balance(new BigDecimal("50.00"))
+                .type(AccountType.SAVINGS)
+                .user(testUser)
+                .build());
+
+        // Try to switch the expense to savings with amount 999 — must fail
+        ExpenseRequest updateReq = ExpenseRequest.builder()
+                .amount(new BigDecimal("999.00"))
+                .merchant("Lunch")
+                .category("Restaurants")
+                .paymentMethod("Card")
+                .accountId(savings.getId())
+                .build();
+
+        mockMvc.perform(put("/api/expenses/{id}", created.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateReq)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error").value("Insufficient Funds"));
+
+        // Transaction rollback: neither account balance should be touched by the
+        // failed update (the +100 restore on testAccount is rolled back too).
+        Account checking = accountRepository.findById(testAccount.getId()).orElseThrow();
+        assertThat(checking.getBalance()).isEqualByComparingTo(new BigDecimal("900.00"));
+        Account savingsAfter = accountRepository.findById(savings.getId()).orElseThrow();
+        assertThat(savingsAfter.getBalance()).isEqualByComparingTo(new BigDecimal("50.00"));
     }
 
     // ─── DELETE /api/expenses/{id} ─────────────────────────────
