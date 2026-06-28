@@ -2,16 +2,21 @@ package com.expensetracker.service;
 
 import com.expensetracker.config.ExpenseCategory;
 import com.expensetracker.dto.*;
+import com.expensetracker.entity.Account;
+import com.expensetracker.entity.AccountType;
 import com.expensetracker.entity.Expense;
 import com.expensetracker.entity.User;
 import com.expensetracker.exception.ExpenseNotFoundException;
 import com.expensetracker.exception.InvalidCategoryException;
+import com.expensetracker.repository.AccountRepository;
 import com.expensetracker.repository.ExpenseRepository;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -29,6 +34,8 @@ public class ExpenseService {
 
     private final ExpenseRepository expenseRepository;
     private final CategorizationService categorizationService;
+    private final AccountRepository accountRepository;
+    private final AccountService accountService;
     private final EntityManager entityManager;
 
     private static final String DEFAULT_CATEGORY = "Uncategorized";
@@ -69,6 +76,17 @@ public class ExpenseService {
 
         User userRef = entityManager.getReference(User.class, userId);
 
+        // Fetch account if accountId provided (for both reference and balance deduction)
+        Account account = null;
+        UUID accountId = request.getAccountId();
+        if (accountId != null) {
+            account = accountRepository.findByIdAndUserId(accountId, userId)
+                    .orElseThrow(() -> new ResponseStatusException(
+                            HttpStatus.NOT_FOUND,
+                            "Account not found with id: " + accountId
+                    ));
+        }
+
         Expense expense = Expense.builder()
                 .amount(request.getAmount())
                 .category(category)
@@ -77,10 +95,26 @@ public class ExpenseService {
                 .cardName(cardName)
                 .timestamp(resolveTimestampForCreate(request))
                 .notes(notes)
+                .account(account)
                 .user(userRef)
                 .build();
 
         Expense saved = expenseRepository.save(expense);
+
+        // Deduct from account balance if accountId was provided
+        if (account != null) {
+            BigDecimal newBalance = account.getBalance().subtract(request.getAmount());
+            account.setBalance(newBalance);
+            accountRepository.save(account);
+            if (account.getType() == AccountType.CREDIT) {
+                log.info("Paid off ${} from CREDIT account '{}' — new outstanding balance: {}",
+                        request.getAmount(), account.getName(), newBalance);
+            } else {
+                log.info("Deducted ${} from account '{}' — new balance: {}",
+                        request.getAmount(), account.getName(), newBalance);
+            }
+        }
+
         return ExpenseResponse.fromEntity(saved);
     }
 
@@ -186,7 +220,31 @@ public class ExpenseService {
         List<Expense> yearExpenses = expenseRepository.findByUserIdAndDateRange(
                 userId, yearStart.atStartOfDay(), yearEnd.plusDays(1).atStartOfDay());
 
+        // Account balances for net worth
+        List<Account> accounts = accountRepository.findByUserIdOrderByCreatedAtAsc(userId);
+        BigDecimal totalAssets = BigDecimal.ZERO;
+        BigDecimal totalDebt = BigDecimal.ZERO;
+        List<DashboardResponse.AccountBalanceEntry> accountBalances = new ArrayList<>();
+        for (Account account : accounts) {
+            if (account.getType() == AccountType.CREDIT) {
+                totalDebt = totalDebt.add(account.getBalance());
+            } else {
+                totalAssets = totalAssets.add(account.getBalance());
+            }
+            accountBalances.add(DashboardResponse.AccountBalanceEntry.builder()
+                    .id(account.getId())
+                    .name(account.getName())
+                    .balance(account.getBalance())
+                    .type(account.getType())
+                    .build());
+        }
+        BigDecimal netWorth = totalAssets.subtract(totalDebt);
+
         return DashboardResponse.builder()
+                .netWorth(netWorth)
+                .totalAssets(totalAssets)
+                .totalDebt(totalDebt)
+                .accountBalances(accountBalances)
                 .today(buildPeriodSummary(todayExpenses, ref, ref))
                 .week(buildPeriodSummary(weekExpenses, weekStart, weekEnd))
                 .month(buildPeriodSummary(monthExpenses, monthStart, monthEnd))
@@ -299,6 +357,10 @@ public class ExpenseService {
         Expense expense = expenseRepository.findByIdAndUserId(id, userId)
                 .orElseThrow(() -> new ExpenseNotFoundException(id));
 
+        BigDecimal oldAmount = expense.getAmount();
+        Account oldAccount = expense.getAccount();
+        UUID oldAccountId = oldAccount != null ? oldAccount.getId() : null;
+
         // Determine category
         String category;
         if (request.getCategory() != null && !request.getCategory().isBlank()) {
@@ -337,8 +399,41 @@ public class ExpenseService {
         }
         expense.setNotes(notes);
 
+        // Resolve new account reference
+        Account newAccount = null;
+        UUID newAccountId = request.getAccountId();
+        if (newAccountId != null) {
+            newAccount = accountRepository.findByIdAndUserId(newAccountId, userId)
+                    .orElseThrow(() -> new ResponseStatusException(
+                            HttpStatus.NOT_FOUND,
+                            "Account not found with id: " + newAccountId
+                    ));
+        }
+        expense.setAccount(newAccount);
+
         Expense saved = expenseRepository.save(expense);
-        log.info("Updated expense {}: merchant='{}', category='{}', amount={}", id, saved.getMerchant(), saved.getCategory(), saved.getAmount());
+
+        // Adjust balances: restore old, deduct new
+        BigDecimal newAmount = request.getAmount();
+
+        // If old account exists, restore its balance by the old amount
+        if (oldAccountId != null) {
+            Account restoreAccount = accountRepository.findById(oldAccountId).orElse(null);
+            if (restoreAccount != null) {
+                restoreAccount.setBalance(restoreAccount.getBalance().add(oldAmount));
+                accountRepository.save(restoreAccount);
+            }
+        }
+
+        // If new account exists, deduct the new amount
+        if (newAccount != null) {
+            BigDecimal newBalance = newAccount.getBalance().subtract(newAmount);
+            newAccount.setBalance(newBalance);
+            accountRepository.save(newAccount);
+        }
+
+        log.info("Updated expense {}: merchant='{}', category='{}', amount={}",
+                id, saved.getMerchant(), saved.getCategory(), saved.getAmount());
         return ExpenseResponse.fromEntity(saved);
     }
 
@@ -346,6 +441,15 @@ public class ExpenseService {
     public ExpenseResponse deleteExpense(UUID id, UUID userId) {
         Expense expense = expenseRepository.findByIdAndUserId(id, userId)
                 .orElseThrow(() -> new ExpenseNotFoundException(id));
+
+        // Restore account balance before deleting
+        Account linkedAccount = expense.getAccount();
+        if (linkedAccount != null) {
+            linkedAccount.setBalance(linkedAccount.getBalance().add(expense.getAmount()));
+            accountRepository.save(linkedAccount);
+            log.info("Restored ${} to account '{}' on expense deletion", expense.getAmount(), linkedAccount.getName());
+        }
+
         expenseRepository.delete(expense);
         log.info("Deleted expense {}: merchant='{}', amount={}", id, expense.getMerchant(), expense.getAmount());
         return ExpenseResponse.fromEntity(expense);
@@ -358,6 +462,23 @@ public class ExpenseService {
                             String.join(", ", ExpenseCategory.VALID_CATEGORIES)
             );
         }
+    }
+
+    /**
+     * Validates that the provided accountId (if non-null) references an
+     * existing account belonging to the current user.
+     *
+     * @throws ResponseStatusException with 404 status if the account is not found
+     */
+    private void validateAccountIfProvided(UUID accountId, UUID userId) {
+        if (accountId == null) {
+            return;
+        }
+        accountRepository.findByIdAndUserId(accountId, userId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Account not found with id: " + accountId
+                ));
     }
 
     /**

@@ -17,7 +17,7 @@ import { CATEGORY_COLORS, CATEGORY_GROUPS, PAYMENT_METHODS } from '@/lib/categor
 import { downloadCsv } from '@/lib/csv'
 import { useI18n } from '@/i18n'
 import { toast } from 'sonner'
-import type { ExpenseResponse, ExpenseRequest, RecurrenceFrequency, DayOfWeek } from '@/types'
+import type { ExpenseResponse, ExpenseRequest, RecurrenceFrequency, DayOfWeek, AccountResponse } from '@/types'
 
 export default function ExpensesPage() {
   const { t, tc, language } = useI18n()
@@ -58,6 +58,9 @@ export default function ExpensesPage() {
   const [timestamp, setTimestamp] = useState('')
   const [notes, setNotes] = useState('')
 
+  const [accounts, setAccounts] = useState<AccountResponse[]>([])
+  const [accountId, setAccountId] = useState('')
+
   const FREQUENCIES: { value: RecurrenceFrequency; label: string }[] = [
     { value: 'DAILY', label: t('frequency.daily') },
     { value: 'WEEKLY', label: t('frequency.weekly') },
@@ -78,6 +81,10 @@ export default function ExpensesPage() {
   useEffect(() => {
     loadExpenses()
   }, [currentMonth])
+
+  useEffect(() => {
+    api.getAccounts().then(setAccounts).catch(() => {})
+  }, [])
 
   async function loadExpenses() {
     setLoading(true)
@@ -100,6 +107,14 @@ export default function ExpensesPage() {
       return true
     })
   }, [expenses, filterMerchant, filterMinAmount, filterMaxAmount, filterCardName, filterPaymentMethod, filterCategory, filterNote])
+
+  const accountMap = useMemo(() => {
+    const map = new Map<string, AccountResponse>()
+    for (const a of accounts) {
+      map.set(a.id, a)
+    }
+    return map
+  }, [accounts])
 
   function clearFilters() {
     setFilterMerchant('')
@@ -136,6 +151,7 @@ export default function ExpensesPage() {
     setCardName('')
     setTimestamp(toLocalDateTimeInput())
     setNotes('')
+    setAccountId('')
     setModalOpen(true)
   }
 
@@ -148,6 +164,7 @@ export default function ExpensesPage() {
     setCardName(exp.cardName || '')
     setTimestamp(toLocalDateTimeInput(new Date(exp.timestamp)))
     setNotes(exp.notes || '')
+    setAccountId(exp.accountId || '')
     setModalOpen(true)
   }
 
@@ -162,6 +179,7 @@ export default function ExpensesPage() {
       cardName: (paymentMethod === 'Card' || paymentMethod === 'Debit') ? cardName : null,
       timestamp: timestamp || null,
       notes: notes || null,
+      accountId: accountId || null,
     }
 
     try {
@@ -375,6 +393,7 @@ export default function ExpensesPage() {
                     <TableHead>{t('expenses.category')}</TableHead>
                     <TableHead className="text-right">{t('expenses.amount')}</TableHead>
                     <TableHead>{t('expenses.paymentCol')}</TableHead>
+                    <TableHead>{t('expenses.account')}</TableHead>
                     <TableHead>{t('expenses.notes')}</TableHead>
                     <TableHead className="text-right w-[100px]">{t('common.actions')}</TableHead>
                   </TableRow>
@@ -400,6 +419,13 @@ export default function ExpensesPage() {
                       <TableCell className="text-right font-medium">{formatMoney(exp.amount, language)}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {t(`payment.${exp.paymentMethod}`)}{exp.cardName ? ` · ${exp.cardName}` : ''}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {exp.accountId && accountMap.has(exp.accountId) ? (
+                          <span>{accountMap.get(exp.accountId)!.name} <span className="text-xs text-muted-foreground/60">({t(`accountTypes.${accountMap.get(exp.accountId)!.type}`)})</span></span>
+                        ) : (
+                          <span className="text-muted-foreground/50">—</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">{exp.notes}</TableCell>
                       <TableCell className="text-right">
@@ -456,6 +482,11 @@ export default function ExpensesPage() {
                     </div>
                   </div>
                   {exp.notes && <p className="text-xs text-muted-foreground mt-2 truncate">{exp.notes}</p>}
+                  {exp.accountId && accountMap.has(exp.accountId) && (
+                    <p className="text-xs text-muted-foreground/60 mt-1">
+                      {accountMap.get(exp.accountId)!.name} ({t(`accountTypes.${accountMap.get(exp.accountId)!.type}`)})
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             ))}
@@ -520,6 +551,19 @@ export default function ExpensesPage() {
             <div className="space-y-2">
               <Label>{t('expenses.dateTime')}</Label>
               <Input type="datetime-local" value={timestamp} onChange={(e) => setTimestamp(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>{t('expenses.account')}</Label>
+              <select
+                value={accountId}
+                onChange={(e) => setAccountId(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                <option value="">— {t('expenses.noAccount')} —</option>
+                {accounts.map((a) => (
+                  <option key={a.id} value={a.id}>{a.name} ({t(`accountTypes.${a.type}`)})</option>
+                ))}
+              </select>
             </div>
             <div className="space-y-2">
               <Label>{t('expenses.notes')}</Label>

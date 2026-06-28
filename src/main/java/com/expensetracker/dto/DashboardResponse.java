@@ -1,11 +1,13 @@
 package com.expensetracker.dto;
 
+import com.expensetracker.entity.AccountType;
 import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -18,6 +20,12 @@ public class DashboardResponse {
     private PeriodSummary week;
     private PeriodSummary month;
     private PeriodSummary year;
+
+    // Net worth fields
+    private BigDecimal netWorth;
+    private BigDecimal totalAssets;
+    private BigDecimal totalDebt;
+    private List<AccountBalanceEntry> accountBalances;
 
     @Getter
     @Setter
@@ -67,5 +75,17 @@ public class DashboardResponse {
         private LocalDate date;
         private BigDecimal total;
         private long count;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class AccountBalanceEntry {
+        private UUID id;
+        private String name;
+        private BigDecimal balance;
+        private AccountType type;
     }
 }

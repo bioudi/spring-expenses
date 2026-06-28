@@ -11,6 +11,7 @@ export interface ExpenseResponse {
   notes: string | null
   createdAt: string
   recurringExpenseId: string | null
+  accountId: string | null
 }
 
 export interface ExpenseRequest {
@@ -21,6 +22,7 @@ export interface ExpenseRequest {
   cardName?: string | null
   timestamp?: string | null
   notes?: string | null
+  accountId?: string | null
 }
 
 export interface CategoryBreakdown {
@@ -53,7 +55,18 @@ export interface PeriodSummary {
   dailySpending: DailySpending[]
 }
 
+export interface AccountBalance {
+  id: string
+  name: string
+  balance: number
+  type: 'BASE' | 'SAVINGS' | 'EMERGENCY' | 'CREDIT'
+}
+
 export interface DashboardResponse {
+  netWorth: number
+  totalAssets: number
+  totalDebt: number
+  accountBalances: AccountBalance[]
   today: PeriodSummary
   week: PeriodSummary
   month: PeriodSummary
@@ -125,6 +138,51 @@ export interface BudgetSuggestionResponse {
   categories: string[]
   suggestedLimit: number
   reasoning: string
+}
+
+// Account types
+export type AccountType = 'BASE' | 'SAVINGS' | 'EMERGENCY' | 'CREDIT'
+
+export interface AccountResponse {
+  id: string
+  name: string
+  balance: number
+  type: AccountType
+  createdAt: string
+  updatedAt: string
+}
+
+export interface AccountRequest {
+  name: string
+  balance?: number
+  type: AccountType
+}
+
+// Income types
+export type IncomeCategory = 'PAYCHECK' | 'REFUND' | 'TAX_RETURN'
+export type IncomeType = 'CASH' | 'TRANSFER'
+
+export interface IncomeResponse {
+  id: string
+  name: string
+  amount: number
+  type: IncomeType
+  category: IncomeCategory
+  accountId: string | null
+  timestamp: string
+  notes: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface IncomeRequest {
+  name: string
+  amount: number
+  type: IncomeType
+  category: IncomeCategory
+  accountId?: string | null
+  timestamp?: string | null
+  notes?: string | null
 }
 
 export interface RecurringExpenseResponse {
