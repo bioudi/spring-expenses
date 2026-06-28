@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel } from '@/components/ui/alert-dialog'
 import { api } from '@/lib/api'
 import { formatMoney, formatDateTime, toLocalDateTimeInput, toISODate } from '@/lib/formatters'
-import { CATEGORY_COLORS, CATEGORY_GROUPS, PAYMENT_METHODS } from '@/lib/categories'
+import { CATEGORY_COLORS, CATEGORY_GROUPS } from '@/lib/categories'
 import { downloadCsv } from '@/lib/csv'
 import { useI18n } from '@/i18n'
 import { toast } from 'sonner'
@@ -36,12 +36,10 @@ export default function ExpensesPage() {
   const [filterMerchant, setFilterMerchant] = useState('')
   const [filterMinAmount, setFilterMinAmount] = useState('')
   const [filterMaxAmount, setFilterMaxAmount] = useState('')
-  const [filterCardName, setFilterCardName] = useState('')
-  const [filterPaymentMethod, setFilterPaymentMethod] = useState('')
   const [filterCategory, setFilterCategory] = useState('')
   const [filterNote, setFilterNote] = useState('')
 
-  const activeFilterCount = [filterMerchant, filterMinAmount, filterMaxAmount, filterCardName, filterPaymentMethod, filterCategory, filterNote].filter(Boolean).length
+  const activeFilterCount = [filterMerchant, filterMinAmount, filterMaxAmount, filterCategory, filterNote].filter(Boolean).length
 
   const [recurringTarget, setRecurringTarget] = useState<ExpenseResponse | null>(null)
   const [recFrequency, setRecFrequency] = useState<RecurrenceFrequency>('MONTHLY')
@@ -53,8 +51,6 @@ export default function ExpensesPage() {
   const [amount, setAmount] = useState('')
   const [merchant, setMerchant] = useState('')
   const [category, setCategory] = useState('')
-  const [paymentMethod, setPaymentMethod] = useState('Card')
-  const [cardName, setCardName] = useState('')
   const [timestamp, setTimestamp] = useState('')
   const [notes, setNotes] = useState('')
 
@@ -100,13 +96,11 @@ export default function ExpensesPage() {
       if (filterMerchant && !exp.merchant.toLowerCase().includes(filterMerchant.toLowerCase())) return false
       if (filterMinAmount && exp.amount < parseFloat(filterMinAmount)) return false
       if (filterMaxAmount && exp.amount > parseFloat(filterMaxAmount)) return false
-      if (filterCardName && !(exp.cardName || '').toLowerCase().includes(filterCardName.toLowerCase())) return false
-      if (filterPaymentMethod && exp.paymentMethod !== filterPaymentMethod) return false
       if (filterCategory && exp.category !== filterCategory) return false
       if (filterNote && !(exp.notes || '').toLowerCase().includes(filterNote.toLowerCase())) return false
       return true
     })
-  }, [expenses, filterMerchant, filterMinAmount, filterMaxAmount, filterCardName, filterPaymentMethod, filterCategory, filterNote])
+  }, [expenses, filterMerchant, filterMinAmount, filterMaxAmount, filterCategory, filterNote])
 
   const accountMap = useMemo(() => {
     const map = new Map<string, AccountResponse>()
@@ -120,21 +114,17 @@ export default function ExpensesPage() {
     setFilterMerchant('')
     setFilterMinAmount('')
     setFilterMaxAmount('')
-    setFilterCardName('')
-    setFilterPaymentMethod('')
     setFilterCategory('')
     setFilterNote('')
   }
 
   function handleExportCsv() {
-    const headers = ['Date', 'Merchant', 'Category', 'Amount', 'Payment Method', 'Card', 'Notes']
+    const headers = ['Date', 'Merchant', 'Category', 'Amount', 'Notes']
     const rows = filteredExpenses.map(exp => [
       format(new Date(exp.timestamp), 'yyyy-MM-dd HH:mm'),
       exp.merchant,
       exp.category,
       String(exp.amount),
-      exp.paymentMethod || '',
-      exp.cardName || '',
       exp.notes || '',
     ])
     downloadCsv(`expenses-${format(currentMonth, 'yyyy-MM')}.csv`, headers, rows)
@@ -147,8 +137,6 @@ export default function ExpensesPage() {
     setAmount('')
     setMerchant('')
     setCategory('')
-    setPaymentMethod('Card')
-    setCardName('')
     setTimestamp(toLocalDateTimeInput())
     setNotes('')
     setAccountId('')
@@ -160,8 +148,6 @@ export default function ExpensesPage() {
     setAmount(String(exp.amount))
     setMerchant(exp.merchant)
     setCategory(exp.category)
-    setPaymentMethod(exp.paymentMethod || 'Card')
-    setCardName(exp.cardName || '')
     setTimestamp(toLocalDateTimeInput(new Date(exp.timestamp)))
     setNotes(exp.notes || '')
     setAccountId(exp.accountId || '')
@@ -175,8 +161,8 @@ export default function ExpensesPage() {
       amount: parseFloat(amount),
       merchant,
       category: category || undefined,
-      paymentMethod,
-      cardName: (paymentMethod === 'Card' || paymentMethod === 'Debit') ? cardName : null,
+      paymentMethod: 'Card',
+      cardName: null,
       timestamp: timestamp || null,
       notes: notes || null,
       accountId: accountId || null,
@@ -238,8 +224,6 @@ export default function ExpensesPage() {
       toast.error(err instanceof Error ? err.message : t('expenses.failedRecurring'))
     }
   }
-
-  const showCardName = paymentMethod === 'Card' || paymentMethod === 'Debit'
 
   return (
     <div className="flex flex-1 flex-col gap-4 py-4 md:gap-6 md:py-6">
@@ -319,21 +303,6 @@ export default function ExpensesPage() {
                   value={filterMaxAmount}
                   onChange={(e) => setFilterMaxAmount(e.target.value)}
                 />
-                <Input
-                  placeholder={t('expenses.filterCardPlaceholder')}
-                  value={filterCardName}
-                  onChange={(e) => setFilterCardName(e.target.value)}
-                />
-                <select
-                  value={filterPaymentMethod}
-                  onChange={(e) => setFilterPaymentMethod(e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                >
-                  <option value="">{t('expenses.allPayments')}</option>
-                  {PAYMENT_METHODS.map((m) => (
-                    <option key={m} value={m}>{t(`payment.${m}`)}</option>
-                  ))}
-                </select>
                 <select
                   value={filterCategory}
                   onChange={(e) => setFilterCategory(e.target.value)}
@@ -392,7 +361,6 @@ export default function ExpensesPage() {
                     <TableHead>{t('expenses.merchant')}</TableHead>
                     <TableHead>{t('expenses.category')}</TableHead>
                     <TableHead className="text-right">{t('expenses.amount')}</TableHead>
-                    <TableHead>{t('expenses.paymentCol')}</TableHead>
                     <TableHead>{t('expenses.account')}</TableHead>
                     <TableHead>{t('expenses.notes')}</TableHead>
                     <TableHead className="text-right w-[100px]">{t('common.actions')}</TableHead>
@@ -417,9 +385,6 @@ export default function ExpensesPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right font-medium">{formatMoney(exp.amount, language)}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {t(`payment.${exp.paymentMethod}`)}{exp.cardName ? ` · ${exp.cardName}` : ''}
-                      </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {exp.accountId && accountMap.has(exp.accountId) ? (
                           <span>{accountMap.get(exp.accountId)!.name} <span className="text-xs text-muted-foreground/60">({t(`accountTypes.${accountMap.get(exp.accountId)!.type}`)})</span></span>
@@ -471,7 +436,6 @@ export default function ExpensesPage() {
                         <div className="h-1.5 w-1.5 rounded-full mr-1 shrink-0" style={{ backgroundColor: CATEGORY_COLORS[exp.category] || '#27272a' }} />
                         {tc(exp.category)}
                       </Badge>
-                      <span className="text-xs text-muted-foreground">{t(`payment.${exp.paymentMethod}`)}</span>
                     </div>
                     <div className="flex gap-1">
                       <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(exp)}><Pencil className="h-3.5 w-3.5" /></Button>
@@ -527,26 +491,6 @@ export default function ExpensesPage() {
                   </optgroup>
                 ))}
               </select>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>{t('expenses.paymentMethod')}</Label>
-                <select
-                  value={paymentMethod}
-                  onChange={(e) => setPaymentMethod(e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                >
-                  {PAYMENT_METHODS.map((m) => (
-                    <option key={m} value={m}>{t(`payment.${m}`)}</option>
-                  ))}
-                </select>
-              </div>
-              {showCardName && (
-                <div className="space-y-2">
-                  <Label>{t('expenses.cardName')}</Label>
-                  <Input value={cardName} onChange={(e) => setCardName(e.target.value)} placeholder={t('expenses.placeholderCard')} />
-                </div>
-              )}
             </div>
             <div className="space-y-2">
               <Label>{t('expenses.dateTime')}</Label>
