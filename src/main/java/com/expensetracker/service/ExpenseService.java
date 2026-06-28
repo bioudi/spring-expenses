@@ -7,6 +7,7 @@ import com.expensetracker.entity.AccountType;
 import com.expensetracker.entity.Expense;
 import com.expensetracker.entity.User;
 import com.expensetracker.exception.ExpenseNotFoundException;
+import com.expensetracker.exception.InsufficientFundsException;
 import com.expensetracker.exception.InvalidCategoryException;
 import com.expensetracker.repository.AccountRepository;
 import com.expensetracker.repository.ExpenseRepository;
@@ -101,8 +102,12 @@ public class ExpenseService {
 
         Expense saved = expenseRepository.save(expense);
 
-        // Deduct from account balance if accountId was provided
+        // Deduct from account balance if accountId was provided.
+        // Reject expenses that would push a real-money account (BASE/SAVINGS/EMERGENCY)
+        // below zero. CREDIT accounts track outstanding debt and are expected to go
+        // more negative when spent, so they bypass this check.
         if (account != null) {
+            validateSufficientFunds(account, request.getAmount());
             BigDecimal newBalance = account.getBalance().subtract(request.getAmount());
             account.setBalance(newBalance);
             accountRepository.save(account);
@@ -425,8 +430,11 @@ public class ExpenseService {
             }
         }
 
-        // If new account exists, deduct the new amount
+        // If new account exists, deduct the new amount.
+        // Skip funds check for CREDIT accounts (debt-tracking); real-money accounts
+        // must have enough balance to cover the new expense amount.
         if (newAccount != null) {
+            validateSufficientFunds(newAccount, newAmount);
             BigDecimal newBalance = newAccount.getBalance().subtract(newAmount);
             newAccount.setBalance(newBalance);
             accountRepository.save(newAccount);
@@ -461,6 +469,28 @@ public class ExpenseService {
                     "Invalid category: " + category + ". Valid categories are: " +
                             String.join(", ", ExpenseCategory.VALID_CATEGORIES)
             );
+        }
+    }
+
+    /**
+     * Throws {@link InsufficientFundsException} if spending {@code amount} on a
+     * non-CREDIT account would push the balance below zero. CREDIT accounts
+     * track outstanding debt and are allowed to go more negative on spend.
+     */
+    private void validateSufficientFunds(Account account, BigDecimal amount) {
+        if (amount == null || account.getType() == AccountType.CREDIT) {
+            return;
+        }
+        BigDecimal balance = account.getBalance();
+        if (balance.compareTo(amount) < 0) {
+            throw new InsufficientFundsException(
+                    String.format(
+                            "Insufficient funds in account '%s': balance %s is less than expense amount %s",
+                            account.getName(),
+                            balance.toPlainString(),
+                            amount.toPlainString()),
+                    balance,
+                    amount);
         }
     }
 
