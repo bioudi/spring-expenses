@@ -52,6 +52,6 @@ public class DataMigrationRunner implements ApplicationRunner {
         );
         log.info("Migrated {} orphaned merchant categories to seed user", merchantsMigrated);
 
-        log.info("Data migration complete. Seed user credentials: email='admin@expensetracker.local', password='changeme'");
+        log.info("Data migration complete. Seed user created: email='{}'", seedUser.getEmail());
     }
 }
