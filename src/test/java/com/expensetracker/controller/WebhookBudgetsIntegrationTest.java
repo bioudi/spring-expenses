@@ -180,8 +180,8 @@ class WebhookBudgetsIntegrationTest {
                     // [1] Fast Food — limit=500, spent=0, percentage=0
                     .andExpect(jsonPath("$.budgets[1].category").value("Fast Food"))
                     .andExpect(jsonPath("$.budgets[1].limit").value(closeTo(500.0, 0.01)))
-                    .andExpect(jsonPath("$.budgets[1].spent").value(closeTo(0.0, 0.01)))
-                    .andExpect(jsonPath("$.budgets[1].percentage").value(closeTo(0.0, 0.01)))
+                    .andExpect(jsonPath("$.budgets[1].spent").value(0))
+                    .andExpect(jsonPath("$.budgets[1].percentage").value(0))
 
                     // [2] Groceries — limit=1500, spent=300, percentage=20.00
                     .andExpect(jsonPath("$.budgets[2].category").value("Groceries"))
@@ -204,8 +204,8 @@ class WebhookBudgetsIntegrationTest {
                     .andExpect(status().isOk())
                     // Electronics is newest → $.budgets[0]
                     .andExpect(jsonPath("$.budgets[0].category").value("Electronics"))
-                    .andExpect(jsonPath("$.budgets[0].spent").value(closeTo(0.0, 0.01)))
-                    .andExpect(jsonPath("$.budgets[0].percentage").value(closeTo(0.0, 0.01)));
+                    .andExpect(jsonPath("$.budgets[0].spent").value(0))
+                    .andExpect(jsonPath("$.budgets[0].percentage").value(0));
         }
 
         @Test
@@ -221,7 +221,7 @@ class WebhookBudgetsIntegrationTest {
                     .andExpect(status().isOk())
                     // Gifts & Donations is newest → $.budgets[0]
                     .andExpect(jsonPath("$.budgets[0].category").value("Gifts & Donations"))
-                    .andExpect(jsonPath("$.budgets[0].percentage").value(closeTo(0.0, 0.01)));
+                    .andExpect(jsonPath("$.budgets[0].percentage").value(0));
         }
     }
 

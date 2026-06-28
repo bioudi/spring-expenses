@@ -8,7 +8,9 @@ import com.expensetracker.entity.*;
 import com.expensetracker.repository.AccountRepository;
 import com.expensetracker.repository.IncomeRepository;
 import com.expensetracker.repository.UserRepository;
+import com.expensetracker.security.UserPrincipal;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,10 +18,13 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithUserDetails;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -58,16 +63,22 @@ class IncomeControllerIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        incomeRepository.deleteAll();
-        accountRepository.deleteAll();
-        userRepository.deleteAll();
+        // Clean up only this test's data to avoid interfering with other
+        // integration test classes running in the same JVM.
+        userRepository.findByEmail(TEST_EMAIL).ifPresent(user -> {
+            incomeRepository.deleteAll(
+                    incomeRepository.findByUserIdOrderByTimestampDesc(user.getId()));
+            accountRepository.deleteAll(
+                    accountRepository.findByUserIdOrderByCreatedAtAsc(user.getId()));
+            userRepository.delete(user);
+        });
 
         testUser = userRepository.save(User.builder()
-                .email(TEST_EMAIL)
-                .password("$2a$10$dummy.bcrypt.password.that.does.not.matter")
-                .displayName("Income Test User")
-                .apiKey(UUID.randomUUID().toString())
-                .build());
+                        .email(TEST_EMAIL)
+                        .password("$2a$10$dummy.bcrypt.password.that.does.not.matter")
+                        .displayName("Income Test User")
+                        .apiKey(UUID.randomUUID().toString())
+                        .build());
 
         testAccount = accountRepository.save(Account.builder()
                 .name("Test Checking")
@@ -75,12 +86,27 @@ class IncomeControllerIntegrationTest {
                 .type(AccountType.BASE)
                 .user(testUser)
                 .build());
+
+        // Set up security context with a proper UserPrincipal
+        UserPrincipal principal = new UserPrincipal(
+                testUser.getId(),
+                testUser.getEmail(),
+                testUser.getPassword(),
+                List.of(new SimpleGrantedAuthority("ROLE_USER"))
+        );
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities())
+        );
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
     }
 
     // ─── POST /api/incomes ────────────────────────────────────
 
     @Test
-    @WithUserDetails(value = TEST_EMAIL, userDetailsServiceBeanName = "customUserDetailsService")
     void createIncome_withoutAccount_returnsCreated() throws Exception {
         IncomeRequest request = IncomeRequest.builder()
                 .name("Bi-weekly paycheck")
@@ -90,7 +116,7 @@ class IncomeControllerIntegrationTest {
                 .notes("June 27 payroll")
                 .build();
 
-        String body = mockMvc.perform(post("/api/incomes")
+        mockMvc.perform(post("/api/incomes")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -99,12 +125,10 @@ class IncomeControllerIntegrationTest {
                 .andExpect(jsonPath("$.type").value("TRANSFER"))
                 .andExpect(jsonPath("$.category").value("PAYCHECK"))
                 .andExpect(jsonPath("$.amount").value(2500.00))
-                .andExpect(jsonPath("$.accountId").isEmpty())
-                .andReturn().getResponse().getContentAsString();
+                .andExpect(jsonPath("$.accountId").isEmpty());
     }
 
     @Test
-    @WithUserDetails(value = TEST_EMAIL, userDetailsServiceBeanName = "customUserDetailsService")
     void createIncome_withAccount_increasesBalance() throws Exception {
         IncomeRequest request = IncomeRequest.builder()
                 .name("Freelance payment")
@@ -114,12 +138,11 @@ class IncomeControllerIntegrationTest {
                 .accountId(testAccount.getId())
                 .build();
 
-        String body = mockMvc.perform(post("/api/incomes")
+        mockMvc.perform(post("/api/incomes")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.accountId").value(testAccount.getId().toString()))
-                .andReturn().getResponse().getContentAsString();
+                .andExpect(jsonPath("$.accountId").value(testAccount.getId().toString()));
 
         // Verify account balance increased
         Account updated = accountRepository.findById(testAccount.getId()).orElseThrow();
@@ -127,7 +150,6 @@ class IncomeControllerIntegrationTest {
     }
 
     @Test
-    @WithUserDetails(value = TEST_EMAIL, userDetailsServiceBeanName = "customUserDetailsService")
     void createIncome_missingName_returnsBadRequest() throws Exception {
         IncomeRequest request = IncomeRequest.builder()
                 .type(IncomeType.CASH)
@@ -142,7 +164,6 @@ class IncomeControllerIntegrationTest {
     }
 
     @Test
-    @WithUserDetails(value = TEST_EMAIL, userDetailsServiceBeanName = "customUserDetailsService")
     void createIncome_invalidAccount_returnsNotFound() throws Exception {
         IncomeRequest request = IncomeRequest.builder()
                 .name("Bad account income")
@@ -161,7 +182,6 @@ class IncomeControllerIntegrationTest {
     // ─── GET /api/incomes ─────────────────────────────────────
 
     @Test
-    @WithUserDetails(value = TEST_EMAIL, userDetailsServiceBeanName = "customUserDetailsService")
     void getIncomes_returnsAllUserIncomes() throws Exception {
         // Create two incomes
         IncomeRequest req1 = IncomeRequest.builder()
@@ -193,7 +213,6 @@ class IncomeControllerIntegrationTest {
     // ─── GET /api/incomes/{id} ────────────────────────────────
 
     @Test
-    @WithUserDetails(value = TEST_EMAIL, userDetailsServiceBeanName = "customUserDetailsService")
     void getIncomeById_returnsIncome() throws Exception {
         IncomeRequest request = IncomeRequest.builder()
                 .name("Specific income")
@@ -218,7 +237,6 @@ class IncomeControllerIntegrationTest {
     }
 
     @Test
-    @WithUserDetails(value = TEST_EMAIL, userDetailsServiceBeanName = "customUserDetailsService")
     void getIncomeById_notFound_returns404() throws Exception {
         mockMvc.perform(get("/api/incomes/{id}", UUID.randomUUID()))
                 .andExpect(status().isNotFound());
@@ -227,7 +245,6 @@ class IncomeControllerIntegrationTest {
     // ─── PUT /api/incomes/{id} ────────────────────────────────
 
     @Test
-    @WithUserDetails(value = TEST_EMAIL, userDetailsServiceBeanName = "customUserDetailsService")
     void updateIncome_updatesFieldsAndAdjustsBalance() throws Exception {
         IncomeRequest createReq = IncomeRequest.builder()
                 .name("Initial income")
@@ -271,7 +288,6 @@ class IncomeControllerIntegrationTest {
     }
 
     @Test
-    @WithUserDetails(value = TEST_EMAIL, userDetailsServiceBeanName = "customUserDetailsService")
     void updateIncome_removeAccountId_reversesOldBalance() throws Exception {
         IncomeRequest createReq = IncomeRequest.builder()
                 .name("With account")
@@ -310,7 +326,6 @@ class IncomeControllerIntegrationTest {
     // ─── DELETE /api/incomes/{id} ─────────────────────────────
 
     @Test
-    @WithUserDetails(value = TEST_EMAIL, userDetailsServiceBeanName = "customUserDetailsService")
     void deleteIncome_reversesBalance() throws Exception {
         IncomeRequest request = IncomeRequest.builder()
                 .name("Delete test")
@@ -340,7 +355,6 @@ class IncomeControllerIntegrationTest {
     }
 
     @Test
-    @WithUserDetails(value = TEST_EMAIL, userDetailsServiceBeanName = "customUserDetailsService")
     void deleteIncome_withoutAccount_noBalanceChange() throws Exception {
         IncomeRequest request = IncomeRequest.builder()
                 .name("No account delete")
