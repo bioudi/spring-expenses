@@ -15,6 +15,8 @@ import type {
   AccountRequest,
   IncomeRequest,
   IncomeResponse,
+  TransferRequest,
+  TransferResponse,
 } from '@/types'
 
 class ApiError extends Error {
@@ -124,5 +126,9 @@ export const api = {
   updateIncome: (id: string, data: IncomeRequest) =>
     apiFetch<IncomeResponse>(`/api/incomes/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteIncome: (id: string) =>
-    apiFetch<void>(`/api/incomes/${id}`, { method: 'DELETE' }),
+    apiFetch<IncomeResponse>(`/api/incomes/${id}`, { method: 'DELETE' }),
+
+  // Transfers
+  transfer: (data: TransferRequest) =>
+    apiFetch<TransferResponse>('/api/transfers', { method: 'POST', body: JSON.stringify(data) }),
 }

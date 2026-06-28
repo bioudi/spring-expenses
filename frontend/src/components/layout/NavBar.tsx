@@ -1,6 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, Receipt, Store, Settings, LogOut, Wallet, Moon, Sun, Menu, X, Repeat, Target, Globe, PiggyBank, Landmark } from 'lucide-react'
+import { LayoutDashboard, Receipt, Store, Settings, LogOut, Wallet, Moon, Sun, Menu, X, Repeat, Target, Globe, PiggyBank, Landmark, ArrowLeftRight } from 'lucide-react'
 import { useTheme } from '@/components/theme-provider'
 import { useI18n } from '@/i18n'
 import { Button } from '@/components/ui/button'
@@ -17,6 +17,7 @@ export default function NavBar() {
     { to: '/expenses', label: t('nav.expenses'), icon: Receipt },
     { to: '/incomes', label: t('nav.incomes'), icon: PiggyBank },
     { to: '/accounts', label: t('nav.accounts'), icon: Landmark },
+    { to: '/transfers', label: t('nav.transfers'), icon: ArrowLeftRight },
     { to: '/recurring', label: t('nav.recurring'), icon: Repeat },
     { to: '/budgets', label: t('nav.budgets'), icon: Target },
     { to: '/merchants', label: t('nav.merchants'), icon: Store },
