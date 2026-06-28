@@ -11,6 +11,9 @@
 --     here — it does not exist in the application schema yet. Once the
 --     Account entity is added, replace the plain account_id column with a
 --     proper FK and add a follow-up migration.
+--   * Reversibility: the companion file
+--       V1__create_incomes_table.rollback.sql
+--     drops the incomes table (CASCADE) to undo this migration.
 -- =============================================================================
 
 CREATE TABLE IF NOT EXISTS incomes (

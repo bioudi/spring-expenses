@@ -2,9 +2,12 @@ package com.expensetracker.controller;
 
 import com.expensetracker.config.DataMigrationRunner;
 import com.expensetracker.config.SchemaMigrationRunner;
+import com.expensetracker.entity.Account;
+import com.expensetracker.entity.AccountType;
 import com.expensetracker.entity.Budget;
 import com.expensetracker.entity.Expense;
 import com.expensetracker.entity.User;
+import com.expensetracker.repository.AccountRepository;
 import com.expensetracker.repository.BudgetRepository;
 import com.expensetracker.repository.ExpenseRepository;
 import com.expensetracker.repository.UserRepository;
@@ -47,6 +50,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  *  10. Top merchants   → sorted by total descending, max 5
  *  11. Budget status   → included in response
  *  12. Multi-user isolation
+ *  13. Account balances → netWorth, totalAssets, totalDebt, accountBalances
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
@@ -68,6 +72,9 @@ class WebhookDashboardIntegrationTest {
     @Autowired
     private ExpenseRepository expenseRepository;
 
+    @Autowired
+    private AccountRepository accountRepository;
+
     @MockBean
     private DataMigrationRunner dataMigrationRunner;
 
@@ -80,6 +87,7 @@ class WebhookDashboardIntegrationTest {
     void setUp() {
         expenseRepository.deleteAll();
         budgetRepository.deleteAll();
+        accountRepository.deleteAll();
         userRepository.deleteAll();
 
         testUser = userRepository.save(User.builder()
@@ -115,7 +123,7 @@ class WebhookDashboardIntegrationTest {
     }
 
     // =====================================================================
-    //  Happy path — valid API key with expense and budget data
+    //  Happy path — valid API key with expense, budget, and account data
     // =====================================================================
 
     @Nested
@@ -176,6 +184,28 @@ class WebhookDashboardIntegrationTest {
                     .timestamp(LocalDateTime.of(2026, 6, 20, 9, 0))
                     .user(testUser)
                     .build());
+
+            // Accounts: BASE(5000), SAVINGS(10000), CREDIT(-1500)
+            accountRepository.save(Account.builder()
+                    .name("Checking")
+                    .type(AccountType.BASE)
+                    .balance(new BigDecimal("5000.00"))
+                    .user(testUser)
+                    .build());
+
+            accountRepository.save(Account.builder()
+                    .name("Savings")
+                    .type(AccountType.SAVINGS)
+                    .balance(new BigDecimal("10000.00"))
+                    .user(testUser)
+                    .build());
+
+            accountRepository.save(Account.builder()
+                    .name("Credit Card")
+                    .type(AccountType.CREDIT)
+                    .balance(new BigDecimal("1500.00"))
+                    .user(testUser)
+                    .build());
         }
 
         @Test
@@ -185,6 +215,8 @@ class WebhookDashboardIntegrationTest {
             // Category breakdown: Groceries(150,2), Restaurants(45,2), Gas & Fuel(75,1)
             // Top merchants: Walmart(100), Shell(75), Costco(50), McDonald's(30), Tim Hortons(15)
             // Budget: Groceries(limit=1500, spent=150, percentage=10.00)
+            // Accounts: BASE(5000) + SAVINGS(10000) = 15000 assets, CREDIT(1500) debt
+            // netWorth = 15000 - 1500 = 13500
             mockMvc.perform(get("/api/webhook/dashboard")
                             .header("X-API-Key", VALID_API_KEY))
                     .andExpect(status().isOk())
@@ -216,7 +248,24 @@ class WebhookDashboardIntegrationTest {
                     .andExpect(jsonPath("$.budgetStatus.budgets[0].category").value("Groceries"))
                     .andExpect(jsonPath("$.budgetStatus.budgets[0].limit").value(closeTo(1500.0, 0.01)))
                     .andExpect(jsonPath("$.budgetStatus.budgets[0].spent").value(closeTo(150.0, 0.01)))
-                    .andExpect(jsonPath("$.budgetStatus.budgets[0].percentage").value(closeTo(10.0, 0.01)));
+                    .andExpect(jsonPath("$.budgetStatus.budgets[0].percentage").value(closeTo(10.0, 0.01)))
+                    // Account balances: totalAssets = 5000 + 10000 = 15000
+                    .andExpect(jsonPath("$.totalAssets").value(closeTo(15000.0, 0.01)))
+                    // totalDebt = 1500
+                    .andExpect(jsonPath("$.totalDebt").value(closeTo(1500.0, 0.01)))
+                    // netWorth = 15000 - 1500 = 13500
+                    .andExpect(jsonPath("$.netWorth").value(closeTo(13500.0, 0.01)))
+                    // accountBalances: 3 accounts
+                    .andExpect(jsonPath("$.accountBalances.length()").value(3))
+                    .andExpect(jsonPath("$.accountBalances[0].name").value("Checking"))
+                    .andExpect(jsonPath("$.accountBalances[0].type").value("BASE"))
+                    .andExpect(jsonPath("$.accountBalances[0].balance").value(closeTo(5000.0, 0.01)))
+                    .andExpect(jsonPath("$.accountBalances[1].name").value("Savings"))
+                    .andExpect(jsonPath("$.accountBalances[1].type").value("SAVINGS"))
+                    .andExpect(jsonPath("$.accountBalances[1].balance").value(closeTo(10000.0, 0.01)))
+                    .andExpect(jsonPath("$.accountBalances[2].name").value("Credit Card"))
+                    .andExpect(jsonPath("$.accountBalances[2].type").value("CREDIT"))
+                    .andExpect(jsonPath("$.accountBalances[2].balance").value(closeTo(1500.0, 0.01)));
         }
     }
 
@@ -229,7 +278,7 @@ class WebhookDashboardIntegrationTest {
     class EdgeCases {
 
         @Test
-        void noExpenses_returnsZeroTotals() throws Exception {
+        void noExpensesAndNoAccounts_returnsZeroTotals() throws Exception {
             mockMvc.perform(get("/api/webhook/dashboard")
                             .header("X-API-Key", VALID_API_KEY))
                     .andExpect(status().isOk())
@@ -237,7 +286,38 @@ class WebhookDashboardIntegrationTest {
                     .andExpect(jsonPath("$.transactionCount").value(0))
                     .andExpect(jsonPath("$.categoryBreakdown").isEmpty())
                     .andExpect(jsonPath("$.topMerchants").isEmpty())
-                    .andExpect(jsonPath("$.budgetStatus.budgets").isEmpty());
+                    .andExpect(jsonPath("$.budgetStatus.budgets").isEmpty())
+                    // No accounts: all zeros
+                    .andExpect(jsonPath("$.netWorth").value(0))
+                    .andExpect(jsonPath("$.totalAssets").value(0))
+                    .andExpect(jsonPath("$.totalDebt").value(0))
+                    .andExpect(jsonPath("$.accountBalances").isEmpty());
+        }
+
+        @Test
+        void accountsWithoutExpenses_returnsNetWorth() throws Exception {
+            accountRepository.save(Account.builder()
+                    .name("Checking")
+                    .type(AccountType.BASE)
+                    .balance(new BigDecimal("3000.00"))
+                    .user(testUser)
+                    .build());
+
+            accountRepository.save(Account.builder()
+                    .name("Credit Card")
+                    .type(AccountType.CREDIT)
+                    .balance(new BigDecimal("500.00"))
+                    .user(testUser)
+                    .build());
+
+            mockMvc.perform(get("/api/webhook/dashboard")
+                            .header("X-API-Key", VALID_API_KEY))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.totalSpent").value(0))
+                    .andExpect(jsonPath("$.totalAssets").value(closeTo(3000.0, 0.01)))
+                    .andExpect(jsonPath("$.totalDebt").value(closeTo(500.0, 0.01)))
+                    .andExpect(jsonPath("$.netWorth").value(closeTo(2500.0, 0.01)))
+                    .andExpect(jsonPath("$.accountBalances.length()").value(2));
         }
 
         @Test
@@ -350,7 +430,7 @@ class WebhookDashboardIntegrationTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.transactionCount").value(expectedCount))
                     .andExpect(jsonPath("$.totalSpent").value(closeTo(expectedTotal, 0.01)))
-                    .andExpect(jsonPath("$.categoryBreakdown." + expectedCategory + ".total")
+                    .andExpect(jsonPath("$.categoryBreakdown['" + expectedCategory + "'].total")
                             .value(closeTo(expectedCategoryTotal, 0.01)));
         }
 
@@ -389,7 +469,7 @@ class WebhookDashboardIntegrationTest {
     class UserIsolation {
 
         @Test
-        void otherUserExpenses_notVisible() throws Exception {
+        void otherUserData_notVisible() throws Exception {
             User otherUser = userRepository.save(User.builder()
                     .email("other@example.com")
                     .password("encoded-pw")
@@ -397,7 +477,7 @@ class WebhookDashboardIntegrationTest {
                     .apiKey("other-user-api-key-9999")
                     .build());
 
-            // Other user has expenses
+            // Other user has expenses and accounts
             expenseRepository.save(Expense.builder()
                     .amount(new BigDecimal("999.99"))
                     .category("Electronics")
@@ -407,12 +487,23 @@ class WebhookDashboardIntegrationTest {
                     .user(otherUser)
                     .build());
 
+            accountRepository.save(Account.builder()
+                    .name("Other Checking")
+                    .type(AccountType.BASE)
+                    .balance(new BigDecimal("99999.00"))
+                    .user(otherUser)
+                    .build());
+
             // Test user sees own data (empty)
             mockMvc.perform(get("/api/webhook/dashboard")
                             .header("X-API-Key", VALID_API_KEY))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.totalSpent").value(0))
-                    .andExpect(jsonPath("$.transactionCount").value(0));
+                    .andExpect(jsonPath("$.transactionCount").value(0))
+                    .andExpect(jsonPath("$.netWorth").value(0))
+                    .andExpect(jsonPath("$.totalAssets").value(0))
+                    .andExpect(jsonPath("$.totalDebt").value(0))
+                    .andExpect(jsonPath("$.accountBalances").isEmpty());
         }
     }
 }
