@@ -40,10 +40,10 @@ public class WebhookController {
     private final AccountRepository accountRepository;
 
     @PostMapping("/expense")
-    public ResponseEntity<ExpenseResponse> createExpense(
+    public ResponseEntity<?> createExpense(
             @Valid @RequestBody ExpenseRequest request
     ) {
-        log.info("Received webhook request: amount={}, merchant={}, cardName={}, card={}, name={}, category={}, notes={}, timestamp={}",
+        log.info("Received webhook request: amount={}, merchant={}, cardName={}, card={}, name={}, category={}, notes={}, timestamp={}, accountId={}",
                 request.getAmount(),
                 request.getMerchant(),
                 request.getCardName(),
@@ -51,10 +51,28 @@ public class WebhookController {
                 request.getName(),
                 request.getCategory(),
                 request.getNotes(),
-                request.getTimestamp());
+                request.getTimestamp(),
+                request.getAccountId());
 
         // userId is set by ApiKeyFilter via SecurityContext
         UUID userId = SecurityUtils.getCurrentUserId();
+
+        // Validate account_id early so a missing/invalid reference produces a clear 400
+        // instead of bubbling up as a generic 404 from the service layer. The service
+        // still revalidates inside the transaction, but failing fast here lets us
+        // return a webhook-friendly error shape without touching the expense record.
+        UUID accountId = request.getAccountId();
+        if (accountId != null) {
+            if (accountRepository.findByIdAndUserId(accountId, userId).isEmpty()) {
+                log.warn("Webhook /expense rejected: account_id={} not found for userId={}",
+                        accountId, userId);
+                return ResponseEntity.badRequest().body(Map.of(
+                        "error", "Invalid account_id",
+                        "message", "Account not found with id: " + accountId
+                ));
+            }
+        }
+
         ExpenseResponse response = expenseService.createExpense(request, userId);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
