@@ -108,14 +108,13 @@ export interface RecurringExpenseRequest {
   amount: number
   merchant: string
   category?: string
-  paymentMethod?: string
-  cardName?: string | null
   notes?: string | null
   frequency: RecurrenceFrequency
   dayOfWeek?: DayOfWeek | null
   dayOfMonth?: number | null
   startDate: string
   endDate?: string | null
+  accountId?: string | null
 }
 
 export interface BudgetRequest {
@@ -190,8 +189,6 @@ export interface RecurringExpenseResponse {
   amount: number
   category: string
   merchant: string
-  paymentMethod: string
-  cardName: string | null
   notes: string | null
   frequency: RecurrenceFrequency
   dayOfWeek: DayOfWeek | null
@@ -202,4 +199,5 @@ export interface RecurringExpenseResponse {
   active: boolean
   createdAt: string
   updatedAt: string
+  accountId: string | null
 }
