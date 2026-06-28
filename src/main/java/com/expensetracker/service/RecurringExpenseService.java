@@ -4,12 +4,15 @@ import com.expensetracker.config.ExpenseCategory;
 import com.expensetracker.config.RecurrenceFrequency;
 import com.expensetracker.dto.RecurringExpenseRequest;
 import com.expensetracker.dto.RecurringExpenseResponse;
+import com.expensetracker.entity.Account;
 import com.expensetracker.entity.Expense;
 import com.expensetracker.entity.RecurringExpense;
 import com.expensetracker.entity.User;
+import com.expensetracker.exception.AccountNotFoundException;
 import com.expensetracker.exception.ExpenseNotFoundException;
 import com.expensetracker.exception.InvalidCategoryException;
 import com.expensetracker.exception.RecurringExpenseNotFoundException;
+import com.expensetracker.repository.AccountRepository;
 import com.expensetracker.repository.ExpenseRepository;
 import com.expensetracker.repository.RecurringExpenseRepository;
 import jakarta.persistence.EntityManager;
@@ -35,6 +38,7 @@ public class RecurringExpenseService {
 
     private final RecurringExpenseRepository recurringExpenseRepository;
     private final ExpenseRepository expenseRepository;
+    private final AccountRepository accountRepository;
     private final CategorizationService categorizationService;
     private final EntityManager entityManager;
 
@@ -45,6 +49,7 @@ public class RecurringExpenseService {
         String category = resolveCategory(request.getCategory(), request.getMerchant(), userId);
 
         User userRef = entityManager.getReference(User.class, userId);
+        Account account = resolveAccount(request.getAccountId(), userId);
 
         LocalDate firstOccurrence = computeFirstOccurrence(request);
 
@@ -61,6 +66,7 @@ public class RecurringExpenseService {
                 .nextOccurrence(firstOccurrence)
                 .active(true)
                 .user(userRef)
+                .account(account)
                 .build();
 
         RecurringExpense saved = recurringExpenseRepository.save(recurring);
@@ -97,6 +103,7 @@ public class RecurringExpenseService {
                 .orElseThrow(() -> new RecurringExpenseNotFoundException(id));
 
         String category = resolveCategory(request.getCategory(), request.getMerchant(), userId);
+        Account account = resolveAccount(request.getAccountId(), userId);
 
         recurring.setAmount(request.getAmount());
         recurring.setCategory(category);
@@ -107,6 +114,7 @@ public class RecurringExpenseService {
         recurring.setDayOfMonth(request.getDayOfMonth());
         recurring.setStartDate(request.getStartDate());
         recurring.setEndDate(request.getEndDate());
+        recurring.setAccount(account);
 
         // Recompute next occurrence
         LocalDate nextOcc = computeFirstOccurrence(request);
@@ -150,6 +158,13 @@ public class RecurringExpenseService {
         Expense expense = expenseRepository.findByIdAndUserId(expenseId, userId)
                 .orElseThrow(() -> new ExpenseNotFoundException(expenseId));
 
+        // Prefer the accountId supplied in the request; otherwise inherit from
+        // the source expense so the recurring template reflects how the user
+        // was already paying for it.
+        UUID accountId = recurrenceFields.getAccountId() != null
+                ? recurrenceFields.getAccountId()
+                : (expense.getAccount() != null ? expense.getAccount().getId() : null);
+
         RecurringExpenseRequest request = RecurringExpenseRequest.builder()
                 .amount(expense.getAmount())
                 .merchant(expense.getMerchant())
@@ -160,6 +175,7 @@ public class RecurringExpenseService {
                 .dayOfMonth(recurrenceFields.getDayOfMonth())
                 .startDate(recurrenceFields.getStartDate())
                 .endDate(recurrenceFields.getEndDate())
+                .accountId(accountId)
                 .build();
 
         RecurringExpenseResponse response = createRecurringExpense(request, userId);
@@ -211,6 +227,7 @@ public class RecurringExpenseService {
                 .timestamp(template.getNextOccurrence().atStartOfDay())
                 .recurringExpenseId(template.getId())
                 .user(template.getUser())
+                .account(template.getAccount())
                 .build();
 
         expenseRepository.save(expense);
@@ -312,5 +329,21 @@ public class RecurringExpenseService {
 
         String aiCategory = categorizationService.categorize(merchant, userId);
         return aiCategory != null ? aiCategory : DEFAULT_CATEGORY;
+    }
+
+    /**
+     * Resolves an accountId from a recurring-expense request into the managed
+     * {@link Account} entity, scoped to the calling user. Returns {@code null}
+     * when no accountId is supplied. Throws {@link AccountNotFoundException}
+     * (404) when the supplied id does not exist or belongs to a different user,
+     * mirroring {@code ExpenseService}'s behavior so the recurring page and the
+     * expense page agree on what "unknown account" means.
+     */
+    private Account resolveAccount(UUID accountId, UUID userId) {
+        if (accountId == null) {
+            return null;
+        }
+        return accountRepository.findByIdAndUserId(accountId, userId)
+                .orElseThrow(() -> new AccountNotFoundException(accountId));
     }
 }

@@ -42,4 +42,6 @@ public class RecurringExpenseRequest {
     private LocalDate startDate;
 
     private LocalDate endDate;
+
+    private UUID accountId;
 }
