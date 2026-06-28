@@ -101,11 +101,14 @@ public class ExpenseService {
 
         Expense saved = expenseRepository.save(expense);
 
-        // Deduct from account balance if accountId was provided
+        // Atomically deduct from the linked account balance if one was provided.
+        // Uses a single SQL UPDATE guarded by "balance >= amount" so concurrent
+        // POSTs cannot lose updates (the original bug) and so an over-the-balance
+        // expense is rejected with InsufficientFundsException (422) instead of
+        // silently driving the balance negative.
         if (account != null) {
-            BigDecimal newBalance = account.getBalance().subtract(request.getAmount());
-            account.setBalance(newBalance);
-            accountRepository.save(account);
+            BigDecimal newBalance = accountService.adjustBalance(
+                    accountId, request.getAmount().negate());
             if (account.getType() == AccountType.CREDIT) {
                 log.info("Paid off ${} from CREDIT account '{}' — new outstanding balance: {}",
                         request.getAmount(), account.getName(), newBalance);
@@ -413,23 +416,23 @@ public class ExpenseService {
 
         Expense saved = expenseRepository.save(expense);
 
-        // Adjust balances: restore old, deduct new
+        // Adjust balances: restore old (atomic add), then deduct new (atomic
+        // guarded subtract). Each call is its own single SQL UPDATE so
+        // concurrent updaters cannot lose updates.
         BigDecimal newAmount = request.getAmount();
 
-        // If old account exists, restore its balance by the old amount
+        // If old account exists, restore its balance by the old amount.
+        // Restore = positive delta on the OLD account.
         if (oldAccountId != null) {
-            Account restoreAccount = accountRepository.findById(oldAccountId).orElse(null);
-            if (restoreAccount != null) {
-                restoreAccount.setBalance(restoreAccount.getBalance().add(oldAmount));
-                accountRepository.save(restoreAccount);
-            }
+            accountService.adjustBalance(oldAccountId, oldAmount);
         }
 
-        // If new account exists, deduct the new amount
+        // If new account exists, deduct the new amount. Deduct = negative delta
+        // on the NEW account. adjustBalance throws InsufficientFundsException
+        // for non-CREDIT accounts when the post-deduction balance would go
+        // negative; that exception propagates out and rolls the transaction.
         if (newAccount != null) {
-            BigDecimal newBalance = newAccount.getBalance().subtract(newAmount);
-            newAccount.setBalance(newBalance);
-            accountRepository.save(newAccount);
+            accountService.adjustBalance(newAccountId, newAmount.negate());
         }
 
         log.info("Updated expense {}: merchant='{}', category='{}', amount={}",
@@ -442,11 +445,13 @@ public class ExpenseService {
         Expense expense = expenseRepository.findByIdAndUserId(id, userId)
                 .orElseThrow(() -> new ExpenseNotFoundException(id));
 
-        // Restore account balance before deleting
+        // Atomically restore the account balance before deleting the expense.
+        // A single SQL UPDATE avoids the race where two concurrent deletes
+        // both read the same pre-restore balance and only one actually adds
+        // the amount back.
         Account linkedAccount = expense.getAccount();
         if (linkedAccount != null) {
-            linkedAccount.setBalance(linkedAccount.getBalance().add(expense.getAmount()));
-            accountRepository.save(linkedAccount);
+            accountService.adjustBalance(linkedAccount.getId(), expense.getAmount());
             log.info("Restored ${} to account '{}' on expense deletion", expense.getAmount(), linkedAccount.getName());
         }
 

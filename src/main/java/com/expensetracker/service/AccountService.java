@@ -3,8 +3,10 @@ package com.expensetracker.service;
 import com.expensetracker.dto.AccountRequest;
 import com.expensetracker.dto.AccountResponse;
 import com.expensetracker.entity.Account;
+import com.expensetracker.entity.AccountType;
 import com.expensetracker.entity.User;
 import com.expensetracker.exception.AccountNotFoundException;
+import com.expensetracker.exception.InsufficientFundsException;
 import com.expensetracker.repository.AccountRepository;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
@@ -82,25 +84,75 @@ public class AccountService {
     }
 
     /**
-     * Atomically adjusts an account's balance by the given delta.
-     * The delta can be positive (increase balance) or negative (decrease balance).
+     * Atomically adjusts an account's balance by the given delta. The delta can be
+     * positive (increase balance, e.g. income or expense delete-restore) or
+     * negative (decrease balance, e.g. expense deduction).
+     *
+     * <p>This uses a single SQL {@code UPDATE} statement guarded by the
+     * appropriate balance predicate, so concurrent callers cannot lose updates
+     * the way a read-then-write pattern would. For non-{@link AccountType#CREDIT}
+     * accounts, a negative delta is rejected if it would drive the balance
+     * below zero (throws {@link InsufficientFundsException}). CREDIT accounts
+     * can grow debt, so negative deltas are always allowed there.
+     *
+     * <p>Returns the account's balance after the adjustment.
      *
      * @param accountId the account to adjust (must exist)
      * @param delta     the amount to add (positive) or subtract (negative)
+     * @return the account's balance after the adjustment
+     * @throws AccountNotFoundException if no account exists with that id
+     * @throws InsufficientFundsException if a negative delta on a non-CREDIT
+     *         account would drive the balance below zero
      */
     @Transactional
-    public void adjustBalance(UUID accountId, BigDecimal delta) {
+    public BigDecimal adjustBalance(UUID accountId, BigDecimal delta) {
         if (delta == null || delta.compareTo(BigDecimal.ZERO) == 0) {
             log.debug("Skipping zero-delta balance adjustment for account {}", accountId);
-            return;
+            // Caller still wants the current balance.
+            return accountRepository.findById(accountId)
+                    .map(Account::getBalance)
+                    .orElseThrow(() -> new AccountNotFoundException(accountId));
         }
 
-        Account account = accountRepository.findById(accountId)
+        boolean isCredit = accountRepository.findById(accountId)
+                .map(a -> a.getType() == AccountType.CREDIT)
                 .orElseThrow(() -> new AccountNotFoundException(accountId));
 
-        account.setBalance(account.getBalance().add(delta));
-        accountRepository.save(account);
+        int rowsAffected;
+        if (delta.signum() < 0) {
+            BigDecimal absAmount = delta.negate();
+            if (isCredit) {
+                // Credit debt can grow — no balance guard.
+                rowsAffected = accountRepository.addToBalance(accountId, delta);
+            } else {
+                // Non-credit account: reject if balance would go negative.
+                rowsAffected = accountRepository.decrementBalanceIfSufficient(accountId, absAmount);
+            }
+        } else {
+            rowsAffected = accountRepository.addToBalance(accountId, delta);
+        }
+
+        if (rowsAffected == 0) {
+            // Either the account disappeared (vanishingly unlikely inside a
+            // single transaction) or — for non-credit, negative deltas — the
+            // balance was insufficient. Fetch the current balance to give the
+            // caller a useful error message.
+            Account current = accountRepository.findById(accountId)
+                    .orElseThrow(() -> new AccountNotFoundException(accountId));
+            throw new InsufficientFundsException(
+                    "Account " + accountId + " has insufficient balance (" +
+                            current.getBalance() + ") to apply delta " + delta,
+                    current.getBalance(),
+                    delta
+            );
+        }
+
+        // Re-read to surface the authoritative post-update balance to the caller.
+        BigDecimal newBalance = accountRepository.findById(accountId)
+                .map(Account::getBalance)
+                .orElseThrow(() -> new AccountNotFoundException(accountId));
         log.debug("Adjusted balance of account {} by {} (new balance: {})",
-                accountId, delta, account.getBalance());
+                accountId, delta, newBalance);
+        return newBalance;
     }
 }
