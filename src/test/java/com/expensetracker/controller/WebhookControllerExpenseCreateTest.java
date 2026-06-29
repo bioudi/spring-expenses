@@ -165,8 +165,8 @@ class WebhookControllerExpenseCreateTest {
         }
 
         @Test
-        @DisplayName("With credit account: balance moves more negative, expense persists")
-        void withCreditAccount_balanceDeducts() throws Exception {
+        @DisplayName("With credit account: balance increases (debt grows), expense persists")
+        void withCreditAccount_balanceIncreases() throws Exception {
             Account credit = accountRepository.save(Account.builder()
                     .name("Webhook Test Credit Card")
                     .balance(new BigDecimal("-100.00"))
@@ -178,7 +178,7 @@ class WebhookControllerExpenseCreateTest {
                     .amount(new BigDecimal("75.00"))
                     .merchant("Amazon")
                     .category("Electronics")
-                    
+
                     .accountId(credit.getId())
                     .build();
 
@@ -189,9 +189,9 @@ class WebhookControllerExpenseCreateTest {
                     .andExpect(status().isCreated())
                     .andExpect(jsonPath("$.accountId").value(credit.getId().toString()));
 
-            // Credit balance: -100 - 75 = -175
+            // Credit balance moves from -100 toward zero — debt shrinks by $75.
             Account updated = accountRepository.findById(credit.getId()).orElseThrow();
-            assertThat(updated.getBalance()).isEqualByComparingTo(new BigDecimal("-175.00"));
+            assertThat(updated.getBalance()).isEqualByComparingTo(new BigDecimal("-25.00"));
         }
     }
 

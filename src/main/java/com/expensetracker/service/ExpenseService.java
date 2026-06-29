@@ -88,16 +88,18 @@ public class ExpenseService {
 
         Expense saved = expenseRepository.save(expense);
 
-        // Deduct from account balance if accountId was provided.
-        // Reject expenses that would push a real-money account (BASE/SAVINGS/EMERGENCY)
-        // below zero. CREDIT accounts track outstanding debt and are expected to go
-        // more negative when spent, so they bypass this check.
+        // Apply the balance change if accountId was provided.
+        // Real-money accounts (BASE/SAVINGS/EMERGENCY) are debited: spending
+        // decreases the balance and is rejected if it would push below zero.
+        // CREDIT accounts are credited in the opposite direction: spending
+        // increases the balance (debt grows) and the funds check is skipped,
+        // because CREDIT balances represent outstanding debt and going more
+        // positive is expected. See applyExpenseDelta for the sign logic.
         if (account != null) {
             validateSufficientFunds(account, request.getAmount());
-            BigDecimal newBalance = accountService.adjustBalance(
-                    accountId, request.getAmount().negate());
+            BigDecimal newBalance = applyExpenseDelta(account, request.getAmount());
             if (account.getType() == AccountType.CREDIT) {
-                log.info("Paid off ${} from CREDIT account '{}' — new outstanding balance: {}",
+                log.info("Charged ${} to CREDIT account '{}' — new outstanding balance: {}",
                         request.getAmount(), account.getName(), newBalance);
             } else {
                 log.info("Deducted ${} from account '{}' — new balance: {}",
@@ -395,21 +397,25 @@ public class ExpenseService {
 
         // Adjust balances: restore old (atomic add), then deduct new (atomic
         // guarded subtract). Each call is its own single SQL UPDATE so
-        // concurrent updaters cannot lose updates.
+        // concurrent updaters cannot lose updates. The sign of both deltas is
+        // account-type aware — see applyExpenseDelta.
         BigDecimal newAmount = request.getAmount();
 
         // If old account exists, restore its balance by the old amount.
-        // Restore = positive delta on the OLD account.
+        // Restore = reverse the original expense delta.
         if (oldAccountId != null) {
-            accountService.adjustBalance(oldAccountId, oldAmount);
+            BigDecimal reverseDelta = oldAccount.getType() == AccountType.CREDIT
+                    ? oldAmount.negate()
+                    : oldAmount;
+            accountService.adjustBalance(oldAccountId, reverseDelta);
         }
 
-        // If new account exists, deduct the new amount.
+        // If new account exists, apply the new expense amount.
         // Skip funds check for CREDIT accounts (debt-tracking); real-money accounts
         // must have enough balance to cover the new expense amount.
         if (newAccount != null) {
             validateSufficientFunds(newAccount, newAmount);
-            accountService.adjustBalance(newAccountId, newAmount.negate());
+            applyExpenseDelta(newAccount, newAmount);
         }
 
         log.info("Updated expense {}: merchant='{}', category='{}', amount={}",
@@ -425,10 +431,16 @@ public class ExpenseService {
         // Atomically restore the account balance before deleting the expense.
         // A single SQL UPDATE avoids the race where two concurrent deletes
         // both read the same pre-restore balance and only one actually adds
-        // the amount back.
+        // the amount back. The sign of the restore is account-type aware —
+        // CREDIT account deltas were positive (debt grew on create), so the
+        // restore subtracts; real-money account deltas were negative (balance
+        // decreased on create), so the restore adds.
         Account linkedAccount = expense.getAccount();
         if (linkedAccount != null) {
-            accountService.adjustBalance(linkedAccount.getId(), expense.getAmount());
+            BigDecimal restoreDelta = linkedAccount.getType() == AccountType.CREDIT
+                    ? expense.getAmount().negate()
+                    : expense.getAmount();
+            accountService.adjustBalance(linkedAccount.getId(), restoreDelta);
             log.info("Restored ${} to account '{}' on expense deletion", expense.getAmount(), linkedAccount.getName());
         }
 
@@ -449,7 +461,8 @@ public class ExpenseService {
     /**
      * Throws {@link InsufficientFundsException} if spending {@code amount} on a
      * non-CREDIT account would push the balance below zero. CREDIT accounts
-     * track outstanding debt and are allowed to go more negative on spend.
+     * represent outstanding debt; spending increases the balance and is
+     * always allowed regardless of current balance.
      */
     private void validateSufficientFunds(Account account, BigDecimal amount) {
         if (amount == null || account.getType() == AccountType.CREDIT) {
@@ -466,6 +479,26 @@ public class ExpenseService {
                     balance,
                     amount);
         }
+    }
+
+    /**
+     * Applies an expense delta to the given account's balance, choosing the
+     * sign based on account type so the resulting balance reflects the
+     * intended direction of money flow.
+     *
+     * <p>For real-money accounts (BASE/SAVINGS/EMERGENCY) the delta is
+     * negated — spending decreases the balance. For CREDIT accounts the
+     * delta is applied as-is — spending increases the balance (debt grows).
+     * The caller has already decided whether a funds check is required via
+     * {@link #validateSufficientFunds(Account, BigDecimal)}.
+     *
+     * @return the account's balance after the adjustment
+     */
+    private BigDecimal applyExpenseDelta(Account account, BigDecimal amount) {
+        BigDecimal delta = account.getType() == AccountType.CREDIT
+                ? amount
+                : amount.negate();
+        return accountService.adjustBalance(account.getId(), delta);
     }
 
     /**

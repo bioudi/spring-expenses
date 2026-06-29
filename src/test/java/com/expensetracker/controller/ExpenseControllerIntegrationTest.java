@@ -149,7 +149,12 @@ class ExpenseControllerIntegrationTest {
     }
 
     @Test
-    void createExpense_withCreditAccount_decreasesBalance() throws Exception {
+    void createExpense_withCreditAccount_increasesBalance() throws Exception {
+        // CREDIT accounts track outstanding debt. Spending INCREASES the
+        // balance (debt grows), not decreases. Old behavior treated CREDIT
+        // like a debit account and drove the balance more negative — that
+        // contradicted the dashboard's debt convention. See ExpenseService
+        // applyExpenseDelta for the per-type sign.
         Account creditAccount = accountRepository.save(Account.builder()
                 .name("Test Credit Card")
                 .balance(new BigDecimal("-500.00"))
@@ -161,7 +166,7 @@ class ExpenseControllerIntegrationTest {
                 .amount(new BigDecimal("200.00"))
                 .merchant("Amazon")
                 .category("Electronics")
-                
+
                 .accountId(creditAccount.getId())
                 .build();
 
@@ -170,9 +175,9 @@ class ExpenseControllerIntegrationTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated());
 
-        // Credit balance should be -500 - 200 = -700
+        // Credit balance should move from -500 toward zero (debt shrinks by $200).
         Account updated = accountRepository.findById(creditAccount.getId()).orElseThrow();
-        assertThat(updated.getBalance()).isEqualByComparingTo(new BigDecimal("-700.00"));
+        assertThat(updated.getBalance()).isEqualByComparingTo(new BigDecimal("-300.00"));
     }
 
     @Test
@@ -221,7 +226,9 @@ class ExpenseControllerIntegrationTest {
 
     @Test
     void createExpense_amountExceedsBalanceOnCreditAccount_succeeds() throws Exception {
-        // CREDIT accounts track outstanding debt — must be allowed to go more negative.
+        // CREDIT accounts track outstanding debt. Spending ADDS to the
+        // balance (debt grows) and is always allowed regardless of the
+        // current balance — no InsufficientFundsException is raised.
         Account creditAccount = accountRepository.save(Account.builder()
                 .name("Test Credit")
                 .balance(new BigDecimal("0.00"))
@@ -233,7 +240,7 @@ class ExpenseControllerIntegrationTest {
                 .amount(new BigDecimal("5000.00"))
                 .merchant("Big Spender")
                 .category("Other")
-                
+
                 .accountId(creditAccount.getId())
                 .build();
 
@@ -243,7 +250,39 @@ class ExpenseControllerIntegrationTest {
                 .andExpect(status().isCreated());
 
         Account updated = accountRepository.findById(creditAccount.getId()).orElseThrow();
-        assertThat(updated.getBalance()).isEqualByComparingTo(new BigDecimal("-5000.00"));
+        // Credit balance should grow from 0 to 5000 (new $5000 of debt).
+        assertThat(updated.getBalance()).isEqualByComparingTo(new BigDecimal("5000.00"));
+    }
+
+    @Test
+    void createExpense_creditAccountStartingPositive_increasesOutstandingBalance() throws Exception {
+        // Acceptance test for the CREDIT-balance-direction fix: a CREDIT
+        // account representing an existing $300 balance (positive = debt
+        // amount) should grow to $450 when a $150 purchase is logged,
+        // instead of moving the balance more negative.
+        Account creditAccount = accountRepository.save(Account.builder()
+                .name("Visa with balance")
+                .balance(new BigDecimal("300.00"))
+                .type(AccountType.CREDIT)
+                .user(testUser)
+                .build());
+
+        ExpenseRequest request = ExpenseRequest.builder()
+                .amount(new BigDecimal("150.00"))
+                .merchant("Apple Store")
+                .category("Electronics")
+
+                .accountId(creditAccount.getId())
+                .build();
+
+        mockMvc.perform(post("/api/expenses")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated());
+
+        // Credit balance: 300 + 150 = 450 (debt grew).
+        Account updated = accountRepository.findById(creditAccount.getId()).orElseThrow();
+        assertThat(updated.getBalance()).isEqualByComparingTo(new BigDecimal("450.00"));
     }
 
     @Test
