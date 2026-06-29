@@ -74,6 +74,7 @@ class RecurringIncomeControllerIntegrationTest {
     @BeforeEach
     void setUp() {
         // Clean only our test data so concurrent test classes stay isolated.
+        // Order matters for FK constraints — recurring_incomes → income → accounts → users.
         userRepository.findByEmail(TEST_EMAIL).ifPresent(user -> {
             recurringIncomeRepository.findAllByUserIdOrderByCreatedAtDesc(user.getId())
                     .forEach(r -> recurringIncomeRepository.deleteById(r.getId()));
@@ -109,6 +110,16 @@ class RecurringIncomeControllerIntegrationTest {
 
     @AfterEach
     void tearDown() {
+        // Wipe any rows this test class wrote so a sibling test class'
+        // @BeforeEach (which does an unconditional accountRepository.deleteAll())
+        // doesn't trip the new recurring_incomes.account_id FK. Runs after
+        // EVERY method (including the last) so the table is empty by the time
+        // the next class' setUp() runs.
+        recurringIncomeRepository.deleteAll();
+        incomeRepository.deleteAll();
+        accountRepository.deleteAll();
+        userRepository.deleteAll();
+
         SecurityContextHolder.clearContext();
     }
 
