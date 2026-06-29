@@ -211,6 +211,41 @@ export interface RecurringExpenseResponse {
   accountId: string | null
 }
 
+// Recurring income — mirrors RecurringExpenseRequest/Response but uses
+// IncomeType / IncomeCategory / `name` instead of merchant/category.
+export interface RecurringIncomeRequest {
+  name: string
+  type: IncomeType
+  category: IncomeCategory
+  amount: number
+  notes?: string | null
+  frequency: RecurrenceFrequency
+  dayOfWeek?: DayOfWeek | null
+  dayOfMonth?: number | null
+  startDate: string
+  endDate?: string | null
+  accountId?: string | null
+}
+
+export interface RecurringIncomeResponse {
+  id: string
+  name: string
+  type: IncomeType
+  category: IncomeCategory
+  amount: number
+  notes: string | null
+  frequency: RecurrenceFrequency
+  dayOfWeek: DayOfWeek | null
+  dayOfMonth: number | null
+  startDate: string
+  endDate: string | null
+  nextOccurrence: string
+  active: boolean
+  accountId: string | null
+  createdAt: string
+  updatedAt: string
+}
+
 // Transfer types — mirrors backend TransferRequest / TransferResponse.
 // The response carries an `AccountSnapshot` per side so the success card can
 // render post-transfer balances without an extra GET.
