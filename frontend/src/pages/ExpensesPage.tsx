@@ -17,7 +17,7 @@ import { CATEGORY_COLORS, CATEGORY_GROUPS } from '@/lib/categories'
 import { downloadCsv } from '@/lib/csv'
 import { useI18n } from '@/i18n'
 import { toast } from 'sonner'
-import type { ExpenseResponse, ExpenseRequest, RecurrenceFrequency, DayOfWeek, AccountResponse } from '@/types'
+import type { ExpenseResponse, RecurrenceFrequency, DayOfWeek, AccountResponse } from '@/types'
 
 export default function ExpensesPage() {
   const { t, tc, language } = useI18n()
@@ -157,12 +157,14 @@ export default function ExpensesPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
 
-    const data: ExpenseRequest = {
+    // Backend ExpenseRequest no longer accepts paymentMethod/cardName
+    // (removed in PR #21). Including them in PUT triggers 400 via
+    // @JsonAnySetter. Branch the payload so updateExpense sends the
+    // strict subset; createExpense still sends the full request shape.
+    const baseFields = {
       amount: parseFloat(amount),
       merchant,
       category: category || undefined,
-      paymentMethod: 'Card',
-      cardName: null,
       timestamp: timestamp || null,
       notes: notes || null,
       accountId: accountId || null,
@@ -170,10 +172,14 @@ export default function ExpensesPage() {
 
     try {
       if (editing) {
-        await api.updateExpense(editing.id, data)
+        await api.updateExpense(editing.id, baseFields)
         toast.success(t('expenses.expenseUpdated'))
       } else {
-        await api.createExpense(data)
+        await api.createExpense({
+          ...baseFields,
+          paymentMethod: 'Card',
+          cardName: null,
+        })
         toast.success(t('expenses.expenseCreated'))
       }
       setModalOpen(false)
