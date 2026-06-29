@@ -2,6 +2,7 @@ package com.expensetracker.dto;
 
 import com.expensetracker.config.FlexibleBigDecimalDeserializer;
 import com.expensetracker.config.StrictUuidDeserializer;
+import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import jakarta.validation.constraints.*;
@@ -19,6 +20,17 @@ import java.util.UUID;
 @Builder
 public class ExpenseRequest {
 
+    /**
+     * Catches any unknown JSON property and rejects it immediately, regardless
+     * of the global ObjectMapper's FAIL_ON_UNKNOWN_PROPERTIES setting. Without
+     * this, Spring Boot's default (false) silently ignores unknown keys —
+     * including the deprecated {@code card} field that stale clients may send.
+     */
+    @JsonAnySetter
+    public void handleUnknown(String key, Object value) {
+        throw new IllegalArgumentException("Unknown field: " + key);
+    }
+
     @NotNull(message = "Amount is required")
     @Positive(message = "Amount must be positive")
     @JsonDeserialize(using = FlexibleBigDecimalDeserializer.class)
@@ -27,8 +39,6 @@ public class ExpenseRequest {
     private String category;
 
     private String merchant;
-
-    private String card;
 
     private String name;
 
