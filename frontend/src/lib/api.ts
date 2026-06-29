@@ -9,6 +9,8 @@ import type {
   ChangePasswordRequest,
   RecurringExpenseRequest,
   RecurringExpenseResponse,
+  RecurringIncomeRequest,
+  RecurringIncomeResponse,
   BudgetRequest,
   BudgetResponse,
   BudgetSuggestionResponse,
@@ -96,6 +98,16 @@ export const api = {
     apiFetch<RecurringExpenseResponse>(`/api/recurring-expenses/${id}/toggle`, { method: 'PATCH' }),
   createRecurringFromExpense: (expenseId: string, data: RecurringExpenseRequest) =>
     apiFetch<RecurringExpenseResponse>(`/api/recurring-expenses/from-expense/${expenseId}`, { method: 'POST', body: JSON.stringify(data) }),
+  getRecurringIncomes: () =>
+    apiFetch<RecurringIncomeResponse[]>('/api/recurring-incomes'),
+  createRecurringIncome: (data: RecurringIncomeRequest) =>
+    apiFetch<RecurringIncomeResponse>('/api/recurring-incomes', { method: 'POST', body: JSON.stringify(data) }),
+  updateRecurringIncome: (id: string, data: RecurringIncomeRequest) =>
+    apiFetch<RecurringIncomeResponse>(`/api/recurring-incomes/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteRecurringIncome: (id: string) =>
+    apiFetch<void>(`/api/recurring-incomes/${id}`, { method: 'DELETE' }),
+  toggleRecurringIncome: (id: string) =>
+    apiFetch<RecurringIncomeResponse>(`/api/recurring-incomes/${id}/toggle`, { method: 'PATCH' }),
   getBudgets: (date?: string) => {
     const url = date ? `/api/budgets?date=${date}` : '/api/budgets'
     return apiFetch<BudgetResponse[]>(url)

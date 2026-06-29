@@ -12,6 +12,7 @@ import AccountsPage from '@/pages/AccountsPage'
 import MerchantsPage from '@/pages/MerchantsPage'
 import SettingsPage from '@/pages/SettingsPage'
 import RecurringExpensesPage from '@/pages/RecurringExpensesPage'
+import RecurringIncomesPage from '@/pages/RecurringIncomesPage'
 import BudgetsPage from '@/pages/BudgetsPage'
 import IncomesPage from '@/pages/IncomesPage'
 import TransfersPage from '@/pages/TransfersPage'
@@ -29,6 +30,7 @@ export default function App() {
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/expenses" element={<ExpensesPage />} />
             <Route path="/recurring" element={<RecurringExpensesPage />} />
+            <Route path="/recurring-incomes" element={<RecurringIncomesPage />} />
             <Route path="/accounts" element={<AccountsPage />} />
             <Route path="/budgets" element={<BudgetsPage />} />
             <Route path="/incomes" element={<IncomesPage />} />

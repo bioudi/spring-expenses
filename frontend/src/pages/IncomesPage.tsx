@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Plus, Pencil, Trash2, Repeat } from 'lucide-react'
 import { format } from 'date-fns'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -161,9 +162,16 @@ export default function IncomesPage() {
           <h1 className="text-2xl font-semibold">{t('incomes.title')}</h1>
           <p className="text-muted-foreground text-sm">{t('incomes.description')}</p>
         </div>
-        <Button onClick={openAdd} size="sm">
-          <Plus className="h-4 w-4 mr-2" /> {t('incomes.addIncome')}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline" size="sm">
+            <Link to="/recurring-incomes">
+              <Repeat className="h-4 w-4 mr-2" /> {t('incomes.manageRecurring')}
+            </Link>
+          </Button>
+          <Button onClick={openAdd} size="sm">
+            <Plus className="h-4 w-4 mr-2" /> {t('incomes.addIncome')}
+          </Button>
+        </div>
       </div>
 
       {loading ? (
