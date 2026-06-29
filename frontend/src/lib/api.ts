@@ -2,6 +2,7 @@ import type {
   DashboardResponse,
   ExpenseRequest,
   ExpenseResponse,
+  ExpenseUpdateRequest,
   MerchantCategory,
   UserProfile,
   RegisterRequest,
@@ -63,7 +64,7 @@ export const api = {
   },
   createExpense: (data: ExpenseRequest) =>
     apiFetch<ExpenseResponse>('/api/expenses', { method: 'POST', body: JSON.stringify(data) }),
-  updateExpense: (id: string, data: ExpenseRequest) =>
+  updateExpense: (id: string, data: ExpenseUpdateRequest) =>
     apiFetch<ExpenseResponse>(`/api/expenses/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteExpense: (id: string) =>
     apiFetch<ExpenseResponse>(`/api/expenses/${id}`, { method: 'DELETE' }),

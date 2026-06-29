@@ -394,13 +394,81 @@ class ExpenseControllerIntegrationTest {
     }
 
     @Test
+    void updateExpense_withoutLegacyPaymentFields_succeeds() throws Exception {
+        // The frontend PUT payload now omits paymentMethod/cardName
+        // (removed in PR #21). Backend must accept the strict-subset
+        // payload and return 200.
+        ExpenseRequest createReq = ExpenseRequest.builder()
+                .amount(new BigDecimal("20.00"))
+                .merchant("Bookstore")
+                .category("Other")
+                .accountId(testAccount.getId())
+                .build();
+        String createBody = mockMvc.perform(post("/api/expenses")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createReq)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        ExpenseResponse created = objectMapper.readValue(createBody, ExpenseResponse.class);
+
+        ExpenseRequest updateReq = ExpenseRequest.builder()
+                .amount(new BigDecimal("25.00"))
+                .merchant("Bookstore")
+                .category("Other")
+                .accountId(testAccount.getId())
+                .build();
+        mockMvc.perform(put("/api/expenses/{id}", created.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateReq)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.amount").value(25.00))
+                .andExpect(jsonPath("$.merchant").value("Bookstore"));
+    }
+
+    @Test
+    void updateExpense_withLegacyPaymentFields_returnsBadRequest() throws Exception {
+        // Defends the backend contract: stale clients that still send
+        // paymentMethod/cardName to PUT must be rejected with 400, not
+        // silently coerced. ExpenseRequest.@JsonAnySetter throws on any
+        // unknown key.
+        ExpenseRequest createReq = ExpenseRequest.builder()
+                .amount(new BigDecimal("20.00"))
+                .merchant("Bookstore")
+                .category("Other")
+                .accountId(testAccount.getId())
+                .build();
+        String createBody = mockMvc.perform(post("/api/expenses")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createReq)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        ExpenseResponse created = objectMapper.readValue(createBody, ExpenseResponse.class);
+
+        String legacyPayload = """
+                {
+                  "amount": 25.00,
+                  "merchant": "Bookstore",
+                  "category": "Other",
+                  "accountId": "%s",
+                  "paymentMethod": "Card",
+                  "cardName": null
+                }
+                """.formatted(testAccount.getId());
+
+        mockMvc.perform(put("/api/expenses/{id}", created.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(legacyPayload))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void updateExpense_switchToAccountWithInsufficientFunds_returnsUnprocessableEntity() throws Exception {
         // Pre-create an expense on testAccount (1000.00 balance)
         ExpenseRequest createReq = ExpenseRequest.builder()
                 .amount(new BigDecimal("100.00"))
                 .merchant("Lunch")
                 .category("Restaurants")
-                
+
                 .accountId(testAccount.getId())
                 .build();
 
@@ -428,7 +496,7 @@ class ExpenseControllerIntegrationTest {
                 .amount(new BigDecimal("999.00"))
                 .merchant("Lunch")
                 .category("Restaurants")
-                
+
                 .accountId(savings.getId())
                 .build();
 

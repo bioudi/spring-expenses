@@ -25,6 +25,15 @@ export interface ExpenseRequest {
   accountId?: string | null
 }
 
+// PUT /api/expenses/{id} — backend ExpenseRequest no longer carries
+// paymentMethod/cardName (removed in PR #21). Sending them causes
+// IllegalArgumentException via @JsonAnySetter → HTTP 400. The update
+// payload is a strict subset of the create payload.
+export type ExpenseUpdateRequest = Omit<
+  ExpenseRequest,
+  'paymentMethod' | 'cardName'
+>
+
 export interface CategoryBreakdown {
   total: number
   count: number
