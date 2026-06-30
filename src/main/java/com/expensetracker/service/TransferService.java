@@ -4,6 +4,7 @@ import com.expensetracker.dto.TransferRequest;
 import com.expensetracker.dto.TransferResponse;
 import com.expensetracker.dto.TransferResponse.AccountSnapshot;
 import com.expensetracker.entity.Account;
+import com.expensetracker.entity.AccountType;
 import com.expensetracker.exception.AccountNotFoundException;
 import com.expensetracker.repository.AccountRepository;
 import jakarta.persistence.EntityManager;
@@ -22,20 +23,28 @@ import java.util.UUID;
  * card payments — in a single {@code @Transactional} block so the two balance
  * mutations either both commit or both roll back.
  *
+ * <p><b>Balance convention</b>: CREDIT account balances represent outstanding
+ * debt and are stored as the amount owed (positive number). Real-money
+ * accounts (BASE / SAVINGS / EMERGENCY) store the available balance (also
+ * positive). Spending $100 on a credit card with $500 of debt raises the
+ * credit balance to $600; paying $200 toward that card lowers it to $300.
+ *
  * <p><b>Four transfer cases (from-type × to-type)</b>
  * <table>
- *   <tr><th>From</th><th>To</th><th>Semantics</th><th>Source guard?</th></tr>
- *   <tr><td>non-CREDIT</td><td>non-CREDIT</td><td>Move money between real accounts</td><td>yes (no overdraft)</td></tr>
- *   <tr><td>non-CREDIT</td><td>CREDIT</td><td>Pay a credit card from a real account</td><td>yes (no overdraft)</td></tr>
- *   <tr><td>CREDIT</td><td>non-CREDIT</td><td>Cash advance / refund to real account</td><td>no (debt can grow)</td></tr>
- *   <tr><td>CREDIT</td><td>CREDIT</td><td>Balance transfer between cards</td><td>no (debt can grow)</td></tr>
+ *   <tr><th>From</th><th>To</th><th>Semantics</th><th>Source Δ</th><th>Dest Δ</th></tr>
+ *   <tr><td>non-CREDIT</td><td>non-CREDIT</td><td>Move money between real accounts</td><td>−amount</td><td>+amount</td></tr>
+ *   <tr><td>non-CREDIT</td><td>CREDIT</td><td>Pay a credit card from a real account (dest debt shrinks)</td><td>−amount</td><td>−amount</td></tr>
+ *   <tr><td>CREDIT</td><td>non-CREDIT</td><td>Cash advance / refund to real account (source debt grows)</td><td>+amount</td><td>+amount</td></tr>
+ *   <tr><td>CREDIT</td><td>CREDIT</td><td>Balance transfer between cards (source debt grows, dest debt shrinks)</td><td>+amount</td><td>−amount</td></tr>
  * </table>
  *
- * <p>Every case still performs the destination add; only the source guard
- * changes. The guard is enforced by the atomic
+ * <p>Both deltas are sign-aware by account type. The non-CREDIT source guard
+ * (no overdraft) is enforced by the atomic
  * {@code UPDATE … WHERE balance &gt;= :amount} path in
  * {@link AccountService#adjustBalance(UUID, BigDecimal)} — see
  * {@link com.expensetracker.repository.AccountRepository#decrementBalanceIfSufficient(UUID, BigDecimal)}.
+ * CREDIT sources have no guard: cash advances and balance transfers can grow
+ * the source debt.
  */
 @Slf4j
 @Service
@@ -88,13 +97,26 @@ public class TransferService {
                 amount, from.getName(), from.getType(),
                 to.getName(), to.getType(), userId);
 
+        // Sign of the source/dest deltas depends on the account type of each
+        // side. CREDIT balances represent outstanding debt (positive = amount
+        // owed); spending on credit grows debt, paying it down shrinks debt.
+        // The four-case matrix:
+        //   non-CREDIT → non-CREDIT: source −amount, dest +amount
+        //   non-CREDIT → CREDIT:     source −amount, dest −amount (pay card)
+        //   CREDIT     → non-CREDIT: source +amount, dest +amount (cash advance)
+        //   CREDIT     → CREDIT:     source +amount, dest −amount (balance transfer)
         // adjustBalance handles the per-type guard internally: non-CREDIT
         // sources reject insufficient funds (InsufficientFundsException → 422),
         // CREDIT sources never throw on the source side. We discard the
         // returned balances and re-read below so the snapshot reflects the
         // authoritative post-update value.
-        accountService.adjustBalance(fromId, amount.negate());
-        accountService.adjustBalance(toId, amount);
+        boolean fromIsCredit = from.getType() == AccountType.CREDIT;
+        boolean toIsCredit = to.getType() == AccountType.CREDIT;
+        BigDecimal sourceDelta = fromIsCredit ? amount : amount.negate();
+        BigDecimal destDelta = toIsCredit ? amount.negate() : amount;
+
+        accountService.adjustBalance(fromId, sourceDelta);
+        accountService.adjustBalance(toId, destDelta);
 
         // Force the persistence context to reload these two entities from
         // the database. Without this, Hibernate's first-level cache would
