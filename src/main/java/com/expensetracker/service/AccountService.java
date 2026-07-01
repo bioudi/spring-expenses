@@ -108,7 +108,8 @@ public class AccountService {
      * the way a read-then-write pattern would. For non-{@link AccountType#CREDIT}
      * accounts, a negative delta is rejected if it would drive the balance
      * below zero (throws {@link InsufficientFundsException}). CREDIT accounts
-     * can grow debt, so negative deltas are always allowed there.
+     * track outstanding debt as a positive balance; a negative delta reduces
+     * the stored balance (debt shrinks), which is always allowed.
      *
      * <p>Returns the account's balance after the adjustment.
      *

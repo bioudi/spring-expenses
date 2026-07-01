@@ -150,14 +150,12 @@ class ExpenseControllerIntegrationTest {
 
     @Test
     void createExpense_withCreditAccount_increasesBalance() throws Exception {
-        // CREDIT accounts track outstanding debt. Spending INCREASES the
-        // balance (debt grows), not decreases. Old behavior treated CREDIT
-        // like a debit account and drove the balance more negative — that
-        // contradicted the dashboard's debt convention. See ExpenseService
-        // applyExpenseDelta for the per-type sign.
+        // CREDIT accounts track outstanding debt as a positive balance.
+        // Spending INCREASES the balance (debt grows), not decreases.
+        // See ExpenseService applyExpenseDelta for the per-type sign.
         Account creditAccount = accountRepository.save(Account.builder()
                 .name("Test Credit Card")
-                .balance(new BigDecimal("-500.00"))
+                .balance(new BigDecimal("500.00"))
                 .type(AccountType.CREDIT)
                 .user(testUser)
                 .build());
@@ -175,9 +173,9 @@ class ExpenseControllerIntegrationTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated());
 
-        // Credit balance should move from -500 toward zero (debt shrinks by $200).
+        // Credit balance should grow from 500 to 700 ($200 added to outstanding debt).
         Account updated = accountRepository.findById(creditAccount.getId()).orElseThrow();
-        assertThat(updated.getBalance()).isEqualByComparingTo(new BigDecimal("-300.00"));
+        assertThat(updated.getBalance()).isEqualByComparingTo(new BigDecimal("700.00"));
     }
 
     @Test

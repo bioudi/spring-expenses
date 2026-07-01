@@ -169,7 +169,7 @@ class WebhookControllerExpenseCreateTest {
         void withCreditAccount_balanceIncreases() throws Exception {
             Account credit = accountRepository.save(Account.builder()
                     .name("Webhook Test Credit Card")
-                    .balance(new BigDecimal("-100.00"))
+                    .balance(new BigDecimal("100.00"))
                     .type(AccountType.CREDIT)
                     .user(testUser)
                     .build());
@@ -189,9 +189,9 @@ class WebhookControllerExpenseCreateTest {
                     .andExpect(status().isCreated())
                     .andExpect(jsonPath("$.accountId").value(credit.getId().toString()));
 
-            // Credit balance moves from -100 toward zero — debt shrinks by $75.
+            // Credit balance grows from 100 to 175 ($75 added to outstanding debt).
             Account updated = accountRepository.findById(credit.getId()).orElseThrow();
-            assertThat(updated.getBalance()).isEqualByComparingTo(new BigDecimal("-25.00"));
+            assertThat(updated.getBalance()).isEqualByComparingTo(new BigDecimal("175.00"));
         }
     }
 
