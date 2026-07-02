@@ -10,6 +10,8 @@ import com.expensetracker.exception.AccountNotFoundException;
 import com.expensetracker.exception.InsufficientFundsException;
 import com.expensetracker.repository.AccountRepository;
 import com.expensetracker.repository.ExpenseRepository;
+import com.expensetracker.repository.RecurringExpenseRepository;
+import com.expensetracker.repository.RecurringIncomeRepository;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +30,8 @@ public class AccountService {
 
     private final AccountRepository accountRepository;
     private final ExpenseRepository expenseRepository;
+    private final RecurringExpenseRepository recurringExpenseRepository;
+    private final RecurringIncomeRepository recurringIncomeRepository;
     private final EntityManager entityManager;
 
     @Transactional(readOnly = true)
@@ -93,6 +97,21 @@ public class AccountService {
             throw new AccountHasLinkedExpensesException(id, linkedExpenseCount);
         }
 
+        // Recurring templates hold real FKs to accounts too — without these
+        // guards their constraint violations surface as raw
+        // DataIntegrityViolationExceptions with Postgres internals in the
+        // message instead of an actionable 400.
+        long linkedRecurringExpenses = recurringExpenseRepository.countByAccountId(id);
+        if (linkedRecurringExpenses > 0) {
+            throw new AccountHasLinkedExpensesException(
+                    id, linkedRecurringExpenses, "recurring expense template(s)");
+        }
+        long linkedRecurringIncomes = recurringIncomeRepository.countByAccountId(id);
+        if (linkedRecurringIncomes > 0) {
+            throw new AccountHasLinkedExpensesException(
+                    id, linkedRecurringIncomes, "recurring income template(s)");
+        }
+
         accountRepository.delete(account);
         log.info("Deleted account {}: name='{}', type={}", id, account.getName(), account.getType());
         return AccountResponse.fromEntity(account);
@@ -153,22 +172,33 @@ public class AccountService {
             // single transaction) or — for non-credit, negative deltas — the
             // balance was insufficient. Fetch the current balance to give the
             // caller a useful error message.
-            Account current = accountRepository.findById(accountId)
-                    .orElseThrow(() -> new AccountNotFoundException(accountId));
+            BigDecimal currentBalance = freshBalance(accountId);
             throw new InsufficientFundsException(
                     "Account " + accountId + " has insufficient balance (" +
-                            current.getBalance() + ") to apply delta " + delta,
-                    current.getBalance(),
+                            currentBalance + ") to apply delta " + delta,
+                    currentBalance,
                     delta
             );
         }
 
         // Re-read to surface the authoritative post-update balance to the caller.
-        BigDecimal newBalance = accountRepository.findById(accountId)
-                .map(Account::getBalance)
-                .orElseThrow(() -> new AccountNotFoundException(accountId));
+        BigDecimal newBalance = freshBalance(accountId);
         log.debug("Adjusted balance of account {} by {} (new balance: {})",
                 accountId, delta, newBalance);
         return newBalance;
+    }
+
+    /**
+     * Reads the account's balance from the database, bypassing Hibernate's
+     * first-level cache. The bulk {@code UPDATE}s above skip the persistence
+     * context, so a plain {@code findById} here would return the pre-update
+     * entity cached when the account type was checked — {@code refresh}
+     * forces a re-select of the authoritative row.
+     */
+    private BigDecimal freshBalance(UUID accountId) {
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new AccountNotFoundException(accountId));
+        entityManager.refresh(account);
+        return account.getBalance();
     }
 }

@@ -2,6 +2,8 @@ package com.expensetracker.service;
 
 import com.expensetracker.dto.IncomeRequest;
 import com.expensetracker.dto.IncomeResponse;
+import com.expensetracker.entity.Account;
+import com.expensetracker.entity.AccountType;
 import com.expensetracker.entity.Income;
 import com.expensetracker.entity.User;
 import com.expensetracker.exception.IncomeNotFoundException;
@@ -33,7 +35,7 @@ public class IncomeService {
 
     @Transactional
     public IncomeResponse createIncome(IncomeRequest request, UUID userId) {
-        validateAccountIfProvided(request.getAccountId(), userId);
+        Account account = resolveAccountIfProvided(request.getAccountId(), userId);
 
         User userRef = entityManager.getReference(User.class, userId);
 
@@ -50,9 +52,12 @@ public class IncomeService {
 
         Income saved = incomeRepository.save(income);
 
-        // Auto-add amount to account balance if accountId is provided
-        if (request.getAccountId() != null) {
-            accountService.adjustBalance(request.getAccountId(), request.getAmount());
+        // Auto-apply the amount to the account balance if accountId is
+        // provided. Sign is account-type aware: money flowing into a CREDIT
+        // account pays down debt (balance shrinks), mirroring the transfer
+        // convention; real-money accounts simply grow.
+        if (account != null) {
+            accountService.adjustBalance(account.getId(), incomeDelta(account, request.getAmount()));
         }
 
         log.info("Income created: id={}, name='{}', amount={}, accountId={}",
@@ -80,12 +85,10 @@ public class IncomeService {
         Income income = incomeRepository.findByIdAndUserId(id, userId)
                 .orElseThrow(() -> new IncomeNotFoundException(id));
 
-        validateAccountIfProvided(request.getAccountId(), userId);
+        Account newAccount = resolveAccountIfProvided(request.getAccountId(), userId);
 
         // Reverse old account balance adjustment before updating
-        if (income.getAccountId() != null) {
-            accountService.adjustBalance(income.getAccountId(), income.getAmount().negate());
-        }
+        reverseIncomeDeltaIfPossible(income);
 
         income.setName(request.getName());
         income.setType(request.getType());
@@ -99,9 +102,9 @@ public class IncomeService {
 
         Income saved = incomeRepository.save(income);
 
-        // Apply new account balance adjustment
-        if (request.getAccountId() != null) {
-            accountService.adjustBalance(request.getAccountId(), request.getAmount());
+        // Apply new account balance adjustment (account-type-aware sign)
+        if (newAccount != null) {
+            accountService.adjustBalance(newAccount.getId(), incomeDelta(newAccount, request.getAmount()));
         }
 
         log.info("Income updated: id={}, name='{}', amount={}, accountId={}",
@@ -115,24 +118,55 @@ public class IncomeService {
                 .orElseThrow(() -> new IncomeNotFoundException(id));
 
         // Reverse account balance adjustment
-        if (income.getAccountId() != null) {
-            accountService.adjustBalance(income.getAccountId(), income.getAmount().negate());
-        }
+        reverseIncomeDeltaIfPossible(income);
 
         incomeRepository.delete(income);
         log.info("Income deleted: id={}, name='{}', amount={}", id, income.getName(), income.getAmount());
         return IncomeResponse.fromEntity(income);
     }
 
-    private void validateAccountIfProvided(UUID accountId, UUID userId) {
+    /**
+     * Resolves an optional accountId to the caller's account, or returns
+     * {@code null} when no accountId was supplied.
+     *
+     * @throws ResponseStatusException with 404 status if the account is not
+     *         found or belongs to another user
+     */
+    private Account resolveAccountIfProvided(UUID accountId, UUID userId) {
         if (accountId == null) {
-            return;
+            return null;
         }
-        accountRepository.findByIdAndUserId(accountId, userId)
+        return accountRepository.findByIdAndUserId(accountId, userId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
                         "Account not found with id: " + accountId
                 ));
+    }
+
+    /**
+     * Sign convention for incomes, matching {@code TransferService}'s matrix:
+     * money into a real account grows the balance (+amount); money into a
+     * CREDIT account pays down outstanding debt (−amount).
+     */
+    private BigDecimal incomeDelta(Account account, BigDecimal amount) {
+        return account.getType() == AccountType.CREDIT ? amount.negate() : amount;
+    }
+
+    /**
+     * Reverses the balance effect this income had when it was created.
+     * Accounts are not FK-linked from incomes, so the referenced account may
+     * have been deleted since; in that case the reversal is skipped (with a
+     * warning) instead of failing the whole update/delete with a 404.
+     */
+    private void reverseIncomeDeltaIfPossible(Income income) {
+        if (income.getAccountId() == null) {
+            return;
+        }
+        accountRepository.findById(income.getAccountId()).ifPresentOrElse(
+                account -> accountService.adjustBalance(
+                        account.getId(), incomeDelta(account, income.getAmount()).negate()),
+                () -> log.warn("Skipping balance reversal for income {}: account {} no longer exists",
+                        income.getId(), income.getAccountId()));
     }
 
     private LocalDateTime resolveTimestamp(IncomeRequest request) {

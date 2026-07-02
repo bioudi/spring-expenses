@@ -3,6 +3,7 @@ package com.expensetracker.service;
 import com.expensetracker.dto.RecurringIncomeRequest;
 import com.expensetracker.dto.RecurringIncomeResponse;
 import com.expensetracker.entity.Account;
+import com.expensetracker.entity.AccountType;
 import com.expensetracker.entity.Income;
 import com.expensetracker.entity.IncomeCategory;
 import com.expensetracker.entity.IncomeType;
@@ -21,6 +22,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.temporal.TemporalAdjusters;
 import java.util.List;
@@ -248,8 +250,14 @@ public class RecurringIncomeService {
 
         // Adjust the linked account balance the same way IncomeService does
         // for ad-hoc creates — only if the template carried an account.
-        if (template.getAccount() != null) {
-            accountRepository.addToBalance(template.getAccount().getId(), template.getAmount());
+        // Sign is account-type aware: money into a CREDIT account pays down
+        // debt (−amount), money into a real account grows it (+amount).
+        Account linkedAccount = template.getAccount();
+        if (linkedAccount != null) {
+            BigDecimal delta = linkedAccount.getType() == AccountType.CREDIT
+                    ? template.getAmount().negate()
+                    : template.getAmount();
+            accountRepository.addToBalance(linkedAccount.getId(), delta);
         }
 
         log.info("Created income from recurring template {}: name='{}', amount={}, date={}",

@@ -2,6 +2,8 @@
 
 A Spring Boot REST API for tracking expenses with webhook support and Docker deployment.
 
+> **Contributing?** Read [CONTRIBUTING.md](CONTRIBUTING.md) first — it defines the coding standards, money-handling conventions, and PR workflow for this repo.
+
 ## Features
 
 - **Webhook endpoint** for receiving expense data

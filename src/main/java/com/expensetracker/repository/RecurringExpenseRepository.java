@@ -18,6 +18,8 @@ public interface RecurringExpenseRepository extends JpaRepository<RecurringExpen
 
     Optional<RecurringExpense> findByIdAndUserId(UUID id, UUID userId);
 
+    long countByAccountId(UUID accountId);
+
     @Query("SELECT r FROM RecurringExpense r WHERE r.active = true AND r.nextOccurrence <= :today AND (r.endDate IS NULL OR r.endDate >= :today)")
     List<RecurringExpense> findDueRecurringExpenses(@Param("today") LocalDate today);
 
