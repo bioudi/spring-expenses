@@ -26,7 +26,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -41,8 +41,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  *   1. Valid API key  → 200 with correct aggregated data
  *   2. Missing API key → 401
  *   3. Invalid API key → 403
- *   4. ?date=2026-06  → June data
- *   5. ?date=2026-07  → July data (different month)
+ *   4. ?date=YYYY-MM  → that month's data only
+ *   5. Adjacent months → each month's data isolated
  *   6. Default date    → current month
  *   7. Invalid date format → 400
  *   8. No expenses     → zero totals
@@ -59,6 +59,14 @@ class WebhookDashboardIntegrationTest {
 
     private static final String VALID_API_KEY = "dashboard-test-api-key-0001";
     private static final String INVALID_API_KEY = "i-do-not-exist";
+
+    // Fixture months are derived from the real clock so the "no date param →
+    // current month" tests never expire. Hardcoded months (June 2026 in the
+    // original version) turn into time bombs the moment the calendar rolls
+    // past them.
+    private static final YearMonth CURRENT_MONTH = YearMonth.now();
+    private static final YearMonth PREVIOUS_MONTH = CURRENT_MONTH.minusMonths(1);
+    private static final YearMonth NEXT_MONTH = CURRENT_MONTH.plusMonths(1);
 
     @Autowired
     private MockMvc mockMvc;
@@ -139,13 +147,13 @@ class WebhookDashboardIntegrationTest {
                     .user(testUser)
                     .build());
 
-            // June expenses across multiple categories and merchants
+            // Current-month expenses across multiple categories and merchants
             expenseRepository.save(Expense.builder()
                     .amount(new BigDecimal("100.00"))
                     .category("Groceries")
                     .merchant("Walmart")
                     
-                    .timestamp(LocalDateTime.of(2026, 6, 1, 10, 0))
+                    .timestamp(CURRENT_MONTH.atDay(1).atTime(10, 0))
                     .user(testUser)
                     .build());
 
@@ -154,7 +162,7 @@ class WebhookDashboardIntegrationTest {
                     .category("Groceries")
                     .merchant("Costco")
                     
-                    .timestamp(LocalDateTime.of(2026, 6, 5, 14, 0))
+                    .timestamp(CURRENT_MONTH.atDay(5).atTime(14, 0))
                     .user(testUser)
                     .build());
 
@@ -163,7 +171,7 @@ class WebhookDashboardIntegrationTest {
                     .category("Restaurants")
                     .merchant("McDonald's")
                     
-                    .timestamp(LocalDateTime.of(2026, 6, 10, 12, 0))
+                    .timestamp(CURRENT_MONTH.atDay(10).atTime(12, 0))
                     .user(testUser)
                     .build());
 
@@ -172,7 +180,7 @@ class WebhookDashboardIntegrationTest {
                     .category("Restaurants")
                     .merchant("Tim Hortons")
                     
-                    .timestamp(LocalDateTime.of(2026, 6, 15, 8, 0))
+                    .timestamp(CURRENT_MONTH.atDay(15).atTime(8, 0))
                     .user(testUser)
                     .build());
 
@@ -181,7 +189,7 @@ class WebhookDashboardIntegrationTest {
                     .category("Gas & Fuel")
                     .merchant("Shell")
                     
-                    .timestamp(LocalDateTime.of(2026, 6, 20, 9, 0))
+                    .timestamp(CURRENT_MONTH.atDay(20).atTime(9, 0))
                     .user(testUser)
                     .build());
 
@@ -328,7 +336,7 @@ class WebhookDashboardIntegrationTest {
                         .category("Groceries")
                         .merchant("Merchant" + i)
                         
-                        .timestamp(LocalDateTime.of(2026, 6, i, 12, 0))
+                        .timestamp(CURRENT_MONTH.atDay(i).atTime(12, 0))
                         .user(testUser)
                         .build());
             }
@@ -348,7 +356,7 @@ class WebhookDashboardIntegrationTest {
                     .category("Groceries")
                     .merchant("Walmart")
                     
-                    .timestamp(LocalDateTime.of(2026, 6, 1, 10, 0))
+                    .timestamp(CURRENT_MONTH.atDay(1).atTime(10, 0))
                     .user(testUser)
                     .build());
 
@@ -357,7 +365,7 @@ class WebhookDashboardIntegrationTest {
                     .category("Groceries")
                     .merchant("Walmart")
                     
-                    .timestamp(LocalDateTime.of(2026, 6, 5, 14, 0))
+                    .timestamp(CURRENT_MONTH.atDay(5).atTime(14, 0))
                     .user(testUser)
                     .build());
 
@@ -389,7 +397,7 @@ class WebhookDashboardIntegrationTest {
                     .category("Groceries")
                     .merchant("Walmart")
                     
-                    .timestamp(LocalDateTime.of(2026, 6, 15, 10, 0))
+                    .timestamp(CURRENT_MONTH.atDay(15).atTime(10, 0))
                     .user(testUser)
                     .build());
 
@@ -398,7 +406,7 @@ class WebhookDashboardIntegrationTest {
                     .category("Restaurants")
                     .merchant("Olive Garden")
                     
-                    .timestamp(LocalDateTime.of(2026, 7, 3, 19, 0))
+                    .timestamp(NEXT_MONTH.atDay(3).atTime(19, 0))
                     .user(testUser)
                     .build());
 
@@ -407,16 +415,16 @@ class WebhookDashboardIntegrationTest {
                     .category("Groceries")
                     .merchant("Metro")
                     
-                    .timestamp(LocalDateTime.of(2026, 5, 20, 16, 0))
+                    .timestamp(PREVIOUS_MONTH.atDay(20).atTime(16, 0))
                     .user(testUser)
                     .build());
         }
 
         private static Stream<Arguments> dateFilterArgs() {
             return Stream.of(
-                    Arguments.of("2026-06", 1, 100.0, "Groceries", 100.0),
-                    Arguments.of("2026-07", 1, 200.0, "Restaurants", 200.0),
-                    Arguments.of("2026-05", 1, 50.0, "Groceries", 50.0)
+                    Arguments.of(CURRENT_MONTH.toString(), 1, 100.0, "Groceries", 100.0),
+                    Arguments.of(NEXT_MONTH.toString(), 1, 200.0, "Restaurants", 200.0),
+                    Arguments.of(PREVIOUS_MONTH.toString(), 1, 50.0, "Groceries", 50.0)
             );
         }
 
@@ -436,7 +444,7 @@ class WebhookDashboardIntegrationTest {
 
         @Test
         void withoutDate_usesCurrentMonth() throws Exception {
-            // Current month is June 2026 (matches June test data)
+            // Only the current-month expense (100) falls in the default window
             mockMvc.perform(get("/api/webhook/dashboard")
                             .header("X-API-Key", VALID_API_KEY))
                     .andExpect(status().isOk())
@@ -483,7 +491,7 @@ class WebhookDashboardIntegrationTest {
                     .category("Electronics")
                     .merchant("Best Buy")
                     
-                    .timestamp(LocalDateTime.of(2026, 6, 1, 10, 0))
+                    .timestamp(CURRENT_MONTH.atDay(1).atTime(10, 0))
                     .user(otherUser)
                     .build());
 
