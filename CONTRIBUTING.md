@@ -77,15 +77,12 @@ If a change needs to skip a layer, the design is wrong — refactor instead.
 
 ## 9. Testing & verification
 
-There is no test suite yet (`spring-boot-starter-test` is wired up and waiting). Until one exists:
+The test suite lives under `src/test/java` (integration tests with MockMvc + H2, plus entity/service tests). Keep it green and growing:
 
-- **New service-layer logic involving money must come with unit tests.** JUnit 5 + Mockito, under `src/test/java`, mirroring the main package layout. This is how we dig out of the no-tests hole — every money-path PR adds at least the tests for what it touched.
-- At minimum, verify locally before opening a PR:
-  ```bash
-  mvn compile -q -Dskip.installnodenpm -Dskip.npm   # backend compiles
-  cd frontend && npm run lint && npm run build       # frontend clean
-  ```
-- For balance-affecting changes, exercise the full cycle manually (create → update → delete) and confirm the account balance returns to its starting value. Test the CREDIT variant too — most balance bugs hide there.
+- **Run the full suite before every PR:** `mvn test -Dskip.installnodenpm -Dskip.npm` (the flags skip the slow frontend build). Frontend: `cd frontend && npm run lint && npm run build`.
+- **New service-layer logic involving money must come with tests.** Mirror the main package layout; follow the existing style (nested `@Nested` classes per scenario, MockMvc through the full stack including `ApiKeyFilter`).
+- **Never hardcode calendar dates in fixtures.** Tests that assume "the current month is June 2026" become time bombs the moment the calendar rolls over. Derive fixture dates from `YearMonth.now()` / `LocalDate.now()` and build any explicit date parameters from the same values.
+- For balance-affecting changes, exercise the full cycle (create → update → delete) and confirm the account balance returns to its starting value. Test the CREDIT variant too — most balance bugs hide there.
 
 ## 10. Git & PR workflow
 
@@ -104,5 +101,5 @@ There is no test suite yet (`spring-boot-starter-test` is wired up and waiting).
 - [ ] All lookups user-scoped (`findByIdAndUserId`)
 - [ ] Domain exception + `GlobalExceptionHandler` mapping for new failure modes
 - [ ] No entities serialized; no secrets logged
-- [ ] Backend compiles, frontend lints and builds
-- [ ] Tests added for new money-path logic; manual create/update/delete cycle verified
+- [ ] Full backend test suite passes; frontend lints and builds
+- [ ] Tests added for new money-path logic (no hardcoded calendar dates); create/update/delete cycle verified
