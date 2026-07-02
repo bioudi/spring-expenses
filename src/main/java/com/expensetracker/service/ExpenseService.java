@@ -410,11 +410,14 @@ public class ExpenseService {
             accountService.adjustBalance(oldAccountId, reverseDelta);
         }
 
-        // If new account exists, apply the new expense amount.
-        // Skip funds check for CREDIT accounts (debt-tracking); real-money accounts
-        // must have enough balance to cover the new expense amount.
+        // If new account exists, apply the new expense amount. The funds
+        // check is enforced by the atomic guarded UPDATE inside
+        // adjustBalance, not by a pre-check here: after the restore above,
+        // the in-memory newAccount.getBalance() is stale (the restore ran as
+        // a bulk UPDATE that bypasses the persistence context), so a
+        // read-then-check would falsely reject valid updates whenever the
+        // old and new account are the same.
         if (newAccount != null) {
-            validateSufficientFunds(newAccount, newAmount);
             applyExpenseDelta(newAccount, newAmount);
         }
 
@@ -499,23 +502,6 @@ public class ExpenseService {
                 ? amount
                 : amount.negate();
         return accountService.adjustBalance(account.getId(), delta);
-    }
-
-    /**
-     * Validates that the provided accountId (if non-null) references an
-     * existing account belonging to the current user.
-     *
-     * @throws ResponseStatusException with 404 status if the account is not found
-     */
-    private void validateAccountIfProvided(UUID accountId, UUID userId) {
-        if (accountId == null) {
-            return;
-        }
-        accountRepository.findByIdAndUserId(accountId, userId)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "Account not found with id: " + accountId
-                ));
     }
 
     /**

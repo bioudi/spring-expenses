@@ -5,11 +5,13 @@ import com.expensetracker.config.RecurrenceFrequency;
 import com.expensetracker.dto.RecurringExpenseRequest;
 import com.expensetracker.dto.RecurringExpenseResponse;
 import com.expensetracker.entity.Account;
+import com.expensetracker.entity.AccountType;
 import com.expensetracker.entity.Expense;
 import com.expensetracker.entity.RecurringExpense;
 import com.expensetracker.entity.User;
 import com.expensetracker.exception.AccountNotFoundException;
 import com.expensetracker.exception.ExpenseNotFoundException;
+import com.expensetracker.exception.InsufficientFundsException;
 import com.expensetracker.exception.InvalidCategoryException;
 import com.expensetracker.exception.RecurringExpenseNotFoundException;
 import com.expensetracker.repository.AccountRepository;
@@ -219,6 +221,13 @@ public class RecurringExpenseService {
     }
 
     private void createExpenseFromTemplate(RecurringExpense template) {
+        // Debit the linked account before saving the expense row, mirroring
+        // ExpenseService.createExpense. Debit-first ordering matters for the
+        // scheduled batch: its per-template catch swallows the exception
+        // without rolling back the transaction, so a failed debit must not
+        // leave an unfunded expense row behind.
+        applyTemplateExpenseDelta(template);
+
         Expense expense = Expense.builder()
                 .amount(template.getAmount())
                 .category(template.getCategory())
@@ -233,6 +242,35 @@ public class RecurringExpenseService {
         expenseRepository.save(expense);
         log.info("Created expense from recurring template {}: merchant='{}', amount={}, date={}",
                 template.getId(), template.getMerchant(), template.getAmount(), template.getNextOccurrence());
+    }
+
+    /**
+     * Applies the template's amount to its linked account using the same
+     * sign convention as {@code ExpenseService}: real-money accounts are
+     * debited (guarded — throws {@link InsufficientFundsException} if the
+     * balance cannot cover the amount), CREDIT accounts grow their
+     * outstanding debt (unguarded). No-op when the template has no account.
+     */
+    private void applyTemplateExpenseDelta(RecurringExpense template) {
+        Account account = template.getAccount();
+        if (account == null) {
+            return;
+        }
+        if (account.getType() == AccountType.CREDIT) {
+            accountRepository.addToBalance(account.getId(), template.getAmount());
+            return;
+        }
+        int rowsAffected = accountRepository.decrementBalanceIfSufficient(
+                account.getId(), template.getAmount());
+        if (rowsAffected == 0) {
+            throw new InsufficientFundsException(
+                    String.format(
+                            "Insufficient funds in account '%s' to materialise recurring expense '%s' (%s)",
+                            account.getName(), template.getMerchant(),
+                            template.getAmount().toPlainString()),
+                    account.getBalance(),
+                    template.getAmount());
+        }
     }
 
     private LocalDate computeFirstOccurrence(RecurringExpenseRequest request) {

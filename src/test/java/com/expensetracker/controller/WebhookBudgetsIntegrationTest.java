@@ -18,7 +18,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.List;
 
 import static org.hamcrest.Matchers.*;
@@ -32,7 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  *   1. Valid API key → 200 with correct budget data
  *   2. Missing API key  → 401
  *   3. Invalid API key  → 403
- *   4. ?date=2026-06    → June data
+ *   4. ?date=YYYY-MM    → that month's data only
  *   5. Default date     → current month
  *   6. Invalid date format → 400
  *
@@ -45,6 +45,14 @@ class WebhookBudgetsIntegrationTest {
 
     private static final String VALID_API_KEY = "valid-test-api-key-0001";
     private static final String INVALID_API_KEY = "i-do-not-exist";
+
+    // Fixture months are derived from the real clock so the "no date param →
+    // current month" tests never expire. Hardcoded months (June 2026 in the
+    // original version) turn into time bombs the moment the calendar rolls
+    // past them.
+    private static final YearMonth CURRENT_MONTH = YearMonth.now();
+    private static final YearMonth PREVIOUS_MONTH = CURRENT_MONTH.minusMonths(1);
+    private static final YearMonth NEXT_MONTH = CURRENT_MONTH.plusMonths(1);
 
     @Autowired
     private MockMvc mockMvc;
@@ -141,13 +149,12 @@ class WebhookBudgetsIntegrationTest {
                     .user(testUser)
                     .build());
 
-            // Expenses in current month (June 2026)
+            // Expenses in the current month
             expenseRepository.save(Expense.builder()
                     .amount(new BigDecimal("300.00"))
                     .category("Groceries")
                     .merchant("Walmart")
-                    
-                    .timestamp(LocalDateTime.of(2026, 6, 15, 10, 0))
+                    .timestamp(CURRENT_MONTH.atDay(15).atTime(10, 0))
                     .user(testUser)
                     .build());
 
@@ -155,8 +162,7 @@ class WebhookBudgetsIntegrationTest {
                     .amount(new BigDecimal("50.00"))
                     .category("Restaurants")
                     .merchant("McDonald's")
-                    
-                    .timestamp(LocalDateTime.of(2026, 6, 10, 12, 0))
+                    .timestamp(CURRENT_MONTH.atDay(10).atTime(12, 0))
                     .user(testUser)
                     .build());
 
@@ -165,8 +171,7 @@ class WebhookBudgetsIntegrationTest {
                     .amount(new BigDecimal("25.00"))
                     .category("Coffee & Cafes")
                     .merchant("Tim Hortons")
-                    
-                    .timestamp(LocalDateTime.of(2026, 6, 12, 8, 0))
+                    .timestamp(CURRENT_MONTH.atDay(12).atTime(8, 0))
                     .user(testUser)
                     .build());
         }
@@ -252,33 +257,30 @@ class WebhookBudgetsIntegrationTest {
                     .user(testUser)
                     .build());
 
-            // June 2026 expenses
+            // Current-month expense
             expenseRepository.save(Expense.builder()
                     .amount(new BigDecimal("80.00"))
                     .category("Gas & Fuel")
                     .merchant("Shell")
-                    
-                    .timestamp(LocalDateTime.of(2026, 6, 5, 14, 0))
+                    .timestamp(CURRENT_MONTH.atDay(5).atTime(14, 0))
                     .user(testUser)
                     .build());
 
-            // July 2026 expenses
+            // Next-month expense
             expenseRepository.save(Expense.builder()
                     .amount(new BigDecimal("45.00"))
                     .category("Gas & Fuel")
                     .merchant("Petro-Canada")
-                    
-                    .timestamp(LocalDateTime.of(2026, 7, 3, 9, 0))
+                    .timestamp(NEXT_MONTH.atDay(3).atTime(9, 0))
                     .user(testUser)
                     .build());
 
-            // May 2026 expenses
+            // Previous-month expense
             expenseRepository.save(Expense.builder()
                     .amount(new BigDecimal("60.00"))
                     .category("Gas & Fuel")
                     .merchant("Esso")
-                    
-                    .timestamp(LocalDateTime.of(2026, 5, 20, 16, 0))
+                    .timestamp(PREVIOUS_MONTH.atDay(20).atTime(16, 0))
                     .user(testUser)
                     .build());
         }
@@ -286,7 +288,7 @@ class WebhookBudgetsIntegrationTest {
         @Test
         void withDateParameter_returnsDataForThatMonth() throws Exception {
             mockMvc.perform(get("/api/webhook/budgets")
-                            .param("date", "2026-06")
+                            .param("date", CURRENT_MONTH.toString())
                             .header("X-API-Key", VALID_API_KEY))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.budgets.length()").value(1))
@@ -296,7 +298,7 @@ class WebhookBudgetsIntegrationTest {
         @Test
         void withDifferentMonth_returnsDataForThatMonth() throws Exception {
             mockMvc.perform(get("/api/webhook/budgets")
-                            .param("date", "2026-07")
+                            .param("date", NEXT_MONTH.toString())
                             .header("X-API-Key", VALID_API_KEY))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.budgets.length()").value(1))
@@ -305,7 +307,7 @@ class WebhookBudgetsIntegrationTest {
 
         @Test
         void withoutDate_usesCurrentMonth() throws Exception {
-            // Current month is June 2026 (matches test data)
+            // Only the current-month expense (80) falls in the default window
             mockMvc.perform(get("/api/webhook/budgets")
                             .header("X-API-Key", VALID_API_KEY))
                     .andExpect(status().isOk())

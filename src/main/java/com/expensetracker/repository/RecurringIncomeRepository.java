@@ -18,6 +18,8 @@ public interface RecurringIncomeRepository extends JpaRepository<RecurringIncome
 
     Optional<RecurringIncome> findByIdAndUserId(UUID id, UUID userId);
 
+    long countByAccountId(UUID accountId);
+
     @Query("SELECT r FROM RecurringIncome r WHERE r.active = true AND r.nextOccurrence <= :today AND (r.endDate IS NULL OR r.endDate >= :today)")
     List<RecurringIncome> findDueRecurringIncomes(@Param("today") LocalDate today);
 

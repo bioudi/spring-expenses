@@ -100,7 +100,13 @@ docker compose down -v                # Stop and wipe database volume
 
 ## Testing
 
-No tests exist yet. `spring-boot-starter-test` is included in `pom.xml` but unused.
+Test suite lives under `src/test/java` — integration tests (MockMvc + H2 in PostgreSQL mode) for controllers/webhooks, plus entity and service tests.
+
+```bash
+mvn test -Dskip.installnodenpm -Dskip.npm    # full backend suite, skips frontend build
+```
+
+Never hardcode calendar dates in test fixtures — derive them from `YearMonth.now()` / `LocalDate.now()` so "current month" assertions don't expire when the calendar rolls over.
 
 ## Gotchas
 
