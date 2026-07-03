@@ -367,7 +367,7 @@ export default function ExpensesPage() {
                     <TableHead>{t('expenses.merchant')}</TableHead>
                     <TableHead>{t('expenses.category')}</TableHead>
                     <TableHead className="text-right">{t('expenses.amount')}</TableHead>
-                    <TableHead>{t('expenses.account')}</TableHead>
+                    <TableHead>{t('expenses.paymentMethod')}</TableHead>
                     <TableHead>{t('expenses.notes')}</TableHead>
                     <TableHead className="text-right w-[100px]">{t('common.actions')}</TableHead>
                   </TableRow>
