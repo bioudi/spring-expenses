@@ -164,7 +164,7 @@ export default function AccountsPage() {
                     <TableCell className="font-medium">{a.name}</TableCell>
                     <TableCell>{typeBadge(a.type)}</TableCell>
                     <TableCell className={`text-right font-mono tabular-nums ${a.type === 'CREDIT' ? 'text-destructive' : ''}`}>
-                      {a.type === 'CREDIT' ? '-' : ''}{formatMoney(a.balance)}
+                      {formatMoney(a.balance)}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
@@ -201,7 +201,7 @@ export default function AccountsPage() {
                 <div className="flex justify-between items-start mb-2">
                   <span className="font-medium">{a.name}</span>
                   <span className={`font-mono text-sm tabular-nums ${a.type === 'CREDIT' ? 'text-destructive' : ''}`}>
-                    {a.type === 'CREDIT' ? '-' : ''}{formatMoney(a.balance)}
+                    {formatMoney(a.balance)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">

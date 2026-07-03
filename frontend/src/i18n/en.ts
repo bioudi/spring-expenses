@@ -17,7 +17,7 @@ export const en = {
     incomes: 'Incomes',
     accounts: 'Accounts',
     transfers: 'Transfers',
-    recurring: 'Recurring',
+    recurring: 'Recurring Expenses',
     recurringIncomes: 'Recurring Incomes',
     budgets: 'Budgets',
     merchants: 'Merchants',
@@ -183,6 +183,7 @@ export const en = {
     showingCount: 'Showing {{count}} of {{total}}',
     exportCsv: 'Export CSV',
     account: 'Account',
+    paymentMethod: 'Payment Method',
     noAccount: 'No account',
   },
   accountTypes: {
